@@ -1,7 +1,7 @@
 """
 Jpeg -> GPX Traglist and + IPTC Taglist files
 
-location online: https://github.com/entorb/tools/tree/master/Photo-Tools
+location online: https://github.com/entorb/Tools-Photos
 location local:  f:\FotoalbumSSD\Skripte
 
 Features

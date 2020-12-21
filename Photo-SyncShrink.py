@@ -1,7 +1,7 @@
 """
 'synchronizes' source and target photo directories while resizing file in target dir to 1920px
 
-location online: https://github.com/entorb/tools/tree/master/Photo-Tools
+location online: https://github.com/entorb/Tools-Photos
 location local:  f:\FotoalbumSSD\Skripte
 """
 
