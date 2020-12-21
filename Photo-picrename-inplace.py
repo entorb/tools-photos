@@ -2,7 +2,7 @@
 renames files and photos based on date
 renames in place, not moved into subfolder
 
-location online: https://github.com/entorb/tools/tree/master/Photo-Tools
+location online: https://github.com/entorb/Tools-Photos
 location local:  f:\FotoalbumSSD\Skripte
 """
 

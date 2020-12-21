@@ -2,7 +2,7 @@
 renames files and photos from iCloud Downloads based on date
 run on Windows in directory iCloud Downloads
 
-location online: https://github.com/entorb/tools/tree/master/pic-rename
+location online: https://github.com/entorb/Tools-Photos
 location local:  f:\FotoalbumSSD\Skripte\
 """
 
