@@ -16,13 +16,13 @@ location local: f:\FotoalbumSSD\Skripte
 # 2.1 copy all
 # 2.2 copy using backlist
 # 2.3 shrinking pictures
-
-# TODO
 # target: remove blacklisted files / dirs
 # target: remove video and other files if not included in selection (.ini file)
 
-# Bugs
+# TODO
+# blacklist: handle "*"
 
+# Bugs
 
 # setup
 import time
@@ -30,6 +30,7 @@ import subprocess
 import os
 import shutil
 from configparser import ConfigParser
+import multiprocessing # for multiprocessing.cpu_count()
 # from PIL import Image # pip3 install Pillow
 # import piexif # pip3 install piexif
 # PROBLEM:
@@ -73,7 +74,7 @@ def read_config():
   l_whitelist = sorted(config.get('general', 'whitelist').split())
 
   global l_blacklist
-  l_blacklist = sorted(config.get('general', 'blacklist').split())
+  l_blacklist = sorted(config.get('general', 'blacklist').lower().split())
 
   o['copy_video_files'] = config.getboolean(
     'general', 'copy_video_files')
@@ -108,8 +109,7 @@ def read_config():
 
   o['jpeg_remove_exif'] = config.getboolean('general', 'jpeg_remove_exif')
 
-
-  o['max_processes'] = config.getint('general', 'max_processes')
+  o['max_processes'] = multiprocessing.cpu_count()
 
   print("settings")
   for key, value in o.items():
@@ -123,7 +123,7 @@ def read_config():
 def is_in_blacklist(path: str):
   ret = False
   for item in l_blacklist:
-    if item in path:
+    if item in path.lower():
       ret = True
       break
   return ret
@@ -183,6 +183,15 @@ def process_print_output(process):
 
 ### Main Functions ###
 
+
+def clean_up_target_base():
+  print("=== delete from dirTargetBase ===")
+  # I only delete dirs not in whitelist, ignoring aby file in target dir
+  for d in os.scandir(o['dirTargetBase']):
+    if d.is_dir():
+      if d.name not in l_whitelist:
+        print(f"del {d.name}")
+        shutil.rmtree(d.path)
 
 def clean_up_target():
   print("=== delete from dirTarget ===")
@@ -309,6 +318,7 @@ def resize_image_ImageMagick(fileIn: str):
 if __name__ == "__main__":
   read_config()
   set_magick_param()
+  clean_up_target_base()
   for dir_whitelist in l_whitelist:
     o['dirSource'] = o['dirSourceBase'] + "\\" + dir_whitelist
     o['dirTarget'] = o['dirTargetBase'] + "\\" + dir_whitelist
