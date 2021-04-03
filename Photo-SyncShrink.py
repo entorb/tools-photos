@@ -7,6 +7,9 @@ location local: f:\FotoalbumSSD\Skripte
 
 # config is in PhotoSyncShrink.ini
 
+# requirements:
+# ImageMagick https://imagemagick.org
+
 # DONE
 # 1. delete from dirTarget
 # 1.1 dirs that are not in dirSource
