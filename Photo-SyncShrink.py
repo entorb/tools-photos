@@ -323,6 +323,7 @@ if __name__ == "__main__":
   set_magick_param()
   clean_up_target_base()
   for dir_whitelist in l_whitelist:
+    print (f"\n====== {dir_whitelist} ======")
     o['dirSource'] = o['dirSourceBase'] + "\\" + dir_whitelist
     o['dirTarget'] = o['dirTargetBase'] + "\\" + dir_whitelist
     clean_up_target()
