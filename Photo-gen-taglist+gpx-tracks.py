@@ -9,17 +9,18 @@ walks through a directory and its sub dirs
 reads tags of all jpeg files
 generates a 000000_gps.gpx track of all photos containing coordinates
 generates a 000000_tags.txt list of all tags/keywords assigned to photos
-generates a global DB of all tags
+generates a 000000_tags_db.txt list containing per tags a list of dirs where it was used
 """
 
 # Bugs
 #
 #
 # TODO:
-# tags: per start_dir create a list
+# refactor the __main__ function into smaller pieces to improve readability
 #
 # IDEA:
 # in the gps file create a new segment per day
+# tags: per start_dir create a list
 # sum up the tags into the parent directory
 #
 
@@ -36,8 +37,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 
 # Settings
 l_dirs = r"""
-f:\FotoalbumSSD\Jahre\2020
-f:\FotoalbumSSD\Jahre\2019
+f:\FotoalbumSSD\Jahre\2021
 """.split()
 
 file_tag_db = "f:/FotoalbumSSD/Jahre/000000_tags_db.txt"
@@ -183,13 +183,13 @@ def creation_date(path_to_file):
 
 def get_pic_datetime_as_str(path_to_file: str, exif_labeled: dict) -> str:
     picDate = ""
-    if 'DateTime' in exif_labeled:
+    if 'DateTime' in exif_labeled and exif_labeled['DateTime'] != '0000:00:00 00:00:00':
         s = exif_labeled['DateTime']
         picDate = dateStrLocalToUtc(s)
-    elif 'DateTimeDigitized' in exif_labeled:
+    elif 'DateTimeDigitized' in exif_labeled and exif_labeled['DateTimeDigitized'] != '0000:00:00 00:00:00':
         s = exif_labeled['DateTimeDigitized']
         picDate = dateStrLocalToUtc(s)
-    elif 'DateTimeOriginal' in exif_labeled:
+    elif 'DateTimeOriginal' in exif_labeled and exif_labeled['DateTimeOriginal'] != '0000:00:00 00:00:00':
         s = exif_labeled['DateTimeOriginal']
         picDate = dateStrLocalToUtc(s)
     else:
