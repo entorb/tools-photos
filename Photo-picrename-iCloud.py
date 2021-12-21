@@ -10,7 +10,7 @@ import os
 import glob
 import platform
 import re
-from datetime import datetime
+import datetime as dt
 
 from PIL import Image, ExifTags  # pip3 install Pillow
 
@@ -35,7 +35,7 @@ def fix_edited_name_for_jpg():
     for filepath in sorted(glob.glob("*(Edited).*")):
         filepath_new = re.sub(re.compile("(\d)(\(Edited\))"), r"\1 \2", filepath)
         if filepath != filepath_new:
-            rename_file(filepath, filepath_new)
+            rename_file_after_checks(filepath, filepath_new)
 
 
 def creation_date(path_to_file):
@@ -57,14 +57,14 @@ def creation_date(path_to_file):
             return stat.st_mtime
 
 
-def get_date(path_to_file) -> datetime:
+def get_date(path_to_file) -> dt.datetime:
     """
     returns datetime of file creation
     1. for jpg images try reading from exif tag
     2. for heic images try reading from exif tag
     (NO: 3. for others fetch modification date and creation date and use the older one)
     """
-    dt = datetime.fromtimestamp(0)  # 1.1.1970
+    d = dt.datetime.fromtimestamp(0)  # 1.1.1970
     # for pictures try to read exif data
     fileext = os.path.splitext(path_to_file)[1]
     if fileext.lower() in (".jpg", ".jpeg"):
@@ -73,45 +73,48 @@ def get_date(path_to_file) -> datetime:
         exif_creation_time = exif.get(36867)
         if exif_creation_time:
             exif_creation_time = exif_creation_time.replace(":", "-", 2)
-            dt_exif_creation = datetime.fromisoformat(exif_creation_time)
-            dt = dt_exif_creation
+            dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
+            d = dt_exif_creation
     elif fileext.lower() in (".heic",):
         f = open(path_to_file, "rb")
         tags = exifread.process_file(f)
         # for key, value in tags.items():
         #     print(f"{key}\t{value}")
-        exif_creation_time = str(tags["EXIF DateTimeOriginal"])
-        exif_creation_time = exif_creation_time.replace(":", "-", 2)
-        dt_exif_creation = datetime.fromisoformat(exif_creation_time)
-        dt = dt_exif_creation
+        if "EXIF DateTimeOriginal" in tags and str(tags["EXIF DateTimeOriginal"]) != 0:
+            exif_creation_time = str(tags["EXIF DateTimeOriginal"])
+            exif_creation_time = exif_creation_time.replace(":", "-", 2)
+            dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
+            d = dt_exif_creation
 
-    # # not, this is just the date of the download
-    # # else use file timestamp instead
-    # if dt == datetime.fromtimestamp(0):
-    #     # creation time is a bit tricky
-    #     ts_file_created = creation_date(path_to_file)
-    #     dt_file_created = datetime.fromtimestamp(ts_file_created)
+    # not, this is just the date of the download
+    # else use file timestamp instead
+    if d == dt.datetime.fromtimestamp(0):
+        # creation time is a bit tricky
+        ts_file_created = creation_date(path_to_file)
+        dt_file_created = dt.datetime.fromtimestamp(ts_file_created)
 
-    #     ts_file_modified = os.path.getmtime(path_to_file)
-    #     dt_file_modified = datetime.fromtimestamp(ts_file_modified)
+        ts_file_modified = os.path.getmtime(path_to_file)
+        dt_file_modified = dt.datetime.fromtimestamp(ts_file_modified)
 
-    #     if (
-    #         dt_file_created <= dt_file_modified
-    #         and dt_file_created > datetime.fromtimestamp(0)
-    #     ):
-    #         dt = dt_file_created
-    #     else:
-    #         dt = dt_file_modified
-    #     # del ts_file_created, ts_file_modified
-    return dt
+        if (
+            dt_file_created <= dt_file_modified
+            and dt_file_created > dt.datetime.fromtimestamp(0)
+        ):
+            dt2 = dt_file_created
+        else:
+            dt2 = dt_file_modified
+        if dt2 < dt.datetime.today() - dt.timedelta(days=7):
+            d = dt2
+        # del ts_file_created, ts_file_modified
+    return d
 
 
-def gen_datestr(dt: datetime) -> str:
+def gen_datestr(d: dt.datetime) -> str:
     """
     format datetime to string
     """
-    s = dt.strftime("%y%m%d_%H%M%S")
-    if dt == datetime.fromtimestamp(0):
+    s = d.strftime("%y%m%d_%H%M%S")
+    if d == dt.datetime.fromtimestamp(0):
         s = "000000"
     return s
 
@@ -126,8 +129,8 @@ def gen_filename(
     if output file already exists, append sequence
     """
     (filename, fileext) = os.path.splitext(filepath)
-    dt = get_date(filepath)
-    datestr = gen_datestr(dt)
+    d = get_date(filepath)
+    datestr = gen_datestr(d)
     count_identical_files = 0
 
     filename_modified = filename.replace("IMG_", "img_")
@@ -152,7 +155,7 @@ def gen_filename(
     return filepath_new, filename_new, fileext_new
 
 
-def rename_file(filepath_old: str, filepath_new: str):
+def rename_file_after_checks(filepath_old: str, filepath_new: str):
     """
     Perform the file renaming after some security checks
     """
@@ -177,7 +180,7 @@ def rename_iPhone_photos():
         filepath_new, filename_new, fileext_new = gen_filename(filepath)
 
         print(f"{filepath} -> {filepath_new}")
-        rename_file(filepath, filepath_new)
+        rename_file_after_checks(filepath, filepath_new)
 
         # for iPhone .jpg we usually also find a .HEIC and if enabled also a _HEVC.MOV
         for ext2 in (".HEIC", "_HEVC.MOV"):
@@ -186,14 +189,14 @@ def rename_iPhone_photos():
                 n = f"{outdir}/HEIC/{filename_new}{ext2.lower()}"
 
                 print(f"{o} -> {n}")
-                rename_file(o, n)
+                rename_file_after_checks(o, n)
 
     l = glob.glob("IMG_*.HEIC")
     for filepath in sorted(l):
         filepath_new, filename_new, fileext_new = gen_filename(filepath)
 
         print(f"{filepath} -> {filepath_new}")
-        rename_file(filepath, filepath_new)
+        rename_file_after_checks(filepath, filepath_new)
 
 
 def rename_files_matching(
@@ -212,7 +215,7 @@ def rename_files_matching(
         )
 
         print(f"{filepath} -> {filepath_new}")
-        rename_file(filepath, filepath_new)
+        rename_file_after_checks(filepath, filepath_new)
 
 
 def rename_Whatsapp_files():
@@ -241,7 +244,7 @@ def rename_Whatsapp_files():
                 filepath=filepath, suffix="_WA", out_sub_dir=out_sub_dir
             )
             print(f"{filepath} -> {filepath_new}")
-            rename_file(filepath, filepath_new)
+            rename_file_after_checks(filepath, filepath_new)
         else:
             # print("not matched")
             pass
@@ -250,6 +253,13 @@ def rename_Whatsapp_files():
 def doit(sub_dir):
     os.chdir(f"{basedir}/{sub_dir}")
     os.makedirs(f"{outdir}", exist_ok=True)  # = mkdir -p
+
+    # jpeg -> jpg
+    for filepath in sorted(glob.glob("*.JPEG")):
+        filepath_new = filepath.replace(".JPEG", ".jpg")
+        # filepath_new = re.sub(".jpe?g$", ".jpg", filepath, re.IGNORECASE)
+        if filepath_new != filepath and not os.path.isfile(filepath_new):
+            os.rename(filepath, filepath_new)
 
     fix_edited_name_for_jpg()
 
