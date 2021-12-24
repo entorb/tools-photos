@@ -17,6 +17,8 @@ generates a 000000_tags_db.txt list containing per tags a list of dirs where it 
 #
 # TODO:
 # refactor the __main__ function into smaller pieces to improve readability
+# use pip install exifread instead, as this might be able to read GPS from movies as well
+# extract GPS from movies
 #
 # IDEA:
 # in the gps file create a new segment per day
@@ -92,10 +94,10 @@ def extractIptcKeywordTags(thisFile: str) -> list:
     #         print(iptc[key])
 
     iptc_keywords = []
-    if len(iptc['keywords']) > 0:  # or supplementalCategories or contacts
-        for key in sorted(iptc['keywords']):
+    if len(iptc["keywords"]) > 0:  # or supplementalCategories or contacts
+        for key in sorted(iptc["keywords"]):
             # try:
-            s = key.decode('utf-8')  # decode binary strings
+            s = key.decode("utf-8")  # decode binary strings
             # s = key.decode('ascii')  # decode binary strings
             iptc_keywords.append(s)
             # except UnicodeDecodeError:
@@ -115,7 +117,7 @@ def get_geotagging(exif: dict) -> dict:
         raise ValueError("No EXIF metadata found")
     geotagging = {}
     for (idx, tag) in TAGS.items():
-        if tag == 'GPSInfo':
+        if tag == "GPSInfo":
             if idx not in exif:
                 raise ValueError("No EXIF geotagging found")
             for (key, val) in GPSTAGS.items():
@@ -136,7 +138,7 @@ def get_decimal_from_dms(dms: tuple, ref: str) -> float:
     degrees = float(dms[0])
     minutes = float(dms[1]) / 60.0
     seconds = float(dms[2]) / 3600.0
-    if ref in ['S', 'W']:
+    if ref in ["S", "W"]:
         degrees = -degrees
         minutes = -minutes
         seconds = -seconds
@@ -145,22 +147,21 @@ def get_decimal_from_dms(dms: tuple, ref: str) -> float:
 
 def get_coordinates(geotags) -> tuple:
     """converts exif internal storage of GPS coordinates into a (lat,lon)"""
-    lat = get_decimal_from_dms(
-        geotags['GPSLatitude'], geotags['GPSLatitudeRef'])
-    lon = get_decimal_from_dms(
-        geotags['GPSLongitude'], geotags['GPSLongitudeRef'])
+    lat = get_decimal_from_dms(geotags["GPSLatitude"], geotags["GPSLatitudeRef"])
+    lon = get_decimal_from_dms(geotags["GPSLongitude"], geotags["GPSLongitudeRef"])
     alt = 0
     # this was broken with new package version
     # if 'GPSAltitude' in geotags and geotags['GPSAltitude'][1] > 0:
     # alt = geotags['GPSAltitude'][0] / geotags['GPSAltitude'][1]
-    if 'GPSAltitude' in geotags and geotags['GPSAltitude'] > 0:
-        alt = int(round(float(geotags['GPSAltitude']), 0))
+    if "GPSAltitude" in geotags and geotags["GPSAltitude"] > 0:
+        alt = int(round(float(geotags["GPSAltitude"]), 0))
     return (lat, lon, alt)
 
 
 #
 # Helper Function Date and Time
 #
+
 
 def creation_date(path_to_file):
     """
@@ -169,7 +170,7 @@ def creation_date(path_to_file):
     last modified if that isn't possible.
     See http://stackoverflow.com/a/39501288/1709587 for explanation.
     """
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         return os.path.getctime(path_to_file)
     else:
         stat = os.stat(path_to_file)
@@ -183,14 +184,26 @@ def creation_date(path_to_file):
 
 def get_pic_datetime_as_str(path_to_file: str, exif_labeled: dict) -> str:
     picDate = ""
-    if 'DateTime' in exif_labeled and exif_labeled['DateTime'] != '0000:00:00 00:00:00':
-        s = exif_labeled['DateTime']
+    if (
+        "DateTime" in exif_labeled
+        and exif_labeled["DateTime"] != "0000:00:00 00:00:00"
+        and exif_labeled["DateTime"] != ""
+    ):
+        s = exif_labeled["DateTime"]
         picDate = dateStrLocalToUtc(s)
-    elif 'DateTimeDigitized' in exif_labeled and exif_labeled['DateTimeDigitized'] != '0000:00:00 00:00:00':
-        s = exif_labeled['DateTimeDigitized']
+    elif (
+        "DateTimeDigitized" in exif_labeled
+        and exif_labeled["DateTimeDigitized"] != "0000:00:00 00:00:00"
+        and exif_labeled["DateTimeDigitized"] != ""
+    ):
+        s = exif_labeled["DateTimeDigitized"]
         picDate = dateStrLocalToUtc(s)
-    elif 'DateTimeOriginal' in exif_labeled and exif_labeled['DateTimeOriginal'] != '0000:00:00 00:00:00':
-        s = exif_labeled['DateTimeOriginal']
+    elif (
+        "DateTimeOriginal" in exif_labeled
+        and exif_labeled["DateTimeOriginal"] != "0000:00:00 00:00:00"
+        and exif_labeled["DateTimeOriginal"] != ""
+    ):
+        s = exif_labeled["DateTimeOriginal"]
         picDate = dateStrLocalToUtc(s)
     else:
         # print("No date in exif found, using file creation or modification date instead, whatever is older")
@@ -202,8 +215,10 @@ def get_pic_datetime_as_str(path_to_file: str, exif_labeled: dict) -> str:
             ts = ts_file_created
         else:
             ts = ts_file_modified
-        picDate = datetime.datetime.utcfromtimestamp(
-            ts).replace(microsecond=0).isoformat() + 'Z'
+        picDate = (
+            datetime.datetime.utcfromtimestamp(ts).replace(microsecond=0).isoformat()
+            + "Z"
+        )
     return picDate
 
 
@@ -213,13 +228,13 @@ def dateStrLocalToUtc(datestr: str) -> str:
     The format is "YYYY:MM:DD HH:MM:SS" with time shown in 24-hour format, and the date and time separated by one blank character (hex 20).
     https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/exif/datetimeoriginal.html
     """
-    assert len(datestr) >= 19
+    assert len(datestr) >= 19, f"E: {datestr}"
     localTimeZone = pytz.timezone("Europe/Berlin")
     dateNaive = ""
-    if datestr[4] == ':':
-        fmt = '%Y:%m:%d %H:%M:%S'
-    elif datestr[4] == '-':
-        fmt = '%Y-%m-%d %H:%M:%S'
+    if datestr[4] == ":":
+        fmt = "%Y:%m:%d %H:%M:%S"
+    elif datestr[4] == "-":
+        fmt = "%Y-%m-%d %H:%M:%S"
     dateNaive = datetime.datetime.strptime(datestr, fmt)
 
     # try:
@@ -228,7 +243,7 @@ def dateStrLocalToUtc(datestr: str) -> str:
     # except ValueError:
     #     pass
     if dateNaive == "":
-        raise ValueError('no valid date format found')
+        raise ValueError("no valid date format found")
     # dateNaive = datetime.datetime.strptime(datestr, '%Y:%m:%d %H:%M:%S')
     local_dt = localTimeZone.localize(dateNaive, is_dst=None)
     datestr_utc = local_dt.astimezone(pytz.utc).isoformat()
@@ -238,14 +253,15 @@ def dateStrLocalToUtc(datestr: str) -> str:
 if __name__ == "__main__":
     d_tag_db = {}
     for start_dir in l_dirs:
-        fileOut_startDir_tags = start_dir + '/' + '000000_tags.txt'
-        fh_startDir_tags = open(fileOut_startDir_tags, mode='w',
-                                encoding='utf-8', newline='\n')
+        fileOut_startDir_tags = start_dir + "/" + "000000_tags.txt"
+        fh_startDir_tags = open(
+            fileOut_startDir_tags, mode="w", encoding="utf-8", newline="\n"
+        )
 
         # walk into path and fetch all files matching extension jpe?g
         for (dirpath, dirnames, filenames) in os.walk(start_dir, topdown=True):
-            dirpath = dirpath.replace('\\', '/')
-            dirpath_rel = dirpath[len(start_dir)+1:]
+            dirpath = dirpath.replace("\\", "/")
+            dirpath_rel = dirpath[len(start_dir) + 1 :]
             if dirpath_rel == "":
                 dirpath_rel = dirpath
 
@@ -253,12 +269,13 @@ if __name__ == "__main__":
             dirnames[:] = [d for d in dirnames if d not in l_dirs_to_skip]
 
             # filter files to only jpegs
-            filenames = [f for f in filenames if re.search(
-                r'\.jpe?g$', f, re.IGNORECASE)]
+            filenames = [
+                f for f in filenames if re.search(r"\.jpe?g$", f, re.IGNORECASE)
+            ]
 
-            print('===')
-            print('===' + dirpath_rel)
-            print('===')
+            print("===")
+            print("===" + dirpath_rel)
+            print("===")
             # tags are counted in a dict
             # gps coordinates are collected in a list
             # for later writing both to files
@@ -266,8 +283,8 @@ if __name__ == "__main__":
             contGpxInThisDir = []
 
             for fileJpeg in filenames:
-                print('==>', fileJpeg)
-                fileIn = dirpath + '/' + fileJpeg
+                print("==>", fileJpeg)
+                fileIn = dirpath + "/" + fileJpeg
 
                 # 1.1 IPTC tags
                 tags = extractIptcKeywordTags(fileIn)
@@ -289,7 +306,8 @@ if __name__ == "__main__":
 
                 # 1.2.1 date
                 picDate = get_pic_datetime_as_str(
-                    path_to_file=fileIn, exif_labeled=exif_labeled)
+                    path_to_file=fileIn, exif_labeled=exif_labeled
+                )
 
                 # 1.2.1 Geo location
                 picLatLonAlt = ()
@@ -306,22 +324,26 @@ if __name__ == "__main__":
                     # print(picDate, picLatLonAlt[0], picLatLonAlt[1], picLatLonAlt[2])
                     s = f'<trkpt lat="{picLatLonAlt[0]}" lon="{picLatLonAlt[1]}"><time>{picDate}</time><name>{fileJpeg}</name>'
                     if picLatLonAlt[2] != 0:
-                        s += f'<ele>{picLatLonAlt[2]}</ele>'
-                    s += '</trkpt>'
+                        s += f"<ele>{picLatLonAlt[2]}</ele>"
+                    s += "</trkpt>"
                     contGpxInThisDir.append(s)
                 # file loop
             # dir loop
 
             # 2.1 write list of tags in file per subdirectory
             if len(contTagsInThisDir) > 1:
-                fileOut2 = dirpath + '/' + '000000_tags.txt'
-                fh2 = open(fileOut2, mode='w', encoding='utf-8', newline='\n')
+                fileOut2 = dirpath + "/" + "000000_tags.txt"
+                fh2 = open(fileOut2, mode="w", encoding="utf-8", newline="\n")
                 for k in sorted(contTagsInThisDir.keys()):
-                    fh2.write("" + k + "\t" + str(contTagsInThisDir[k])+"\n")
+                    fh2.write("" + k + "\t" + str(contTagsInThisDir[k]) + "\n")
                 fh2.close()
 
                 fh_startDir_tags.write(
-                    dirpath_rel+"\t"+", ".join(sorted(contTagsInThisDir.keys())) + "\n")
+                    dirpath_rel
+                    + "\t"
+                    + ", ".join(sorted(contTagsInThisDir.keys()))
+                    + "\n"
+                )
 
                 for tag in sorted(contTagsInThisDir.keys()):
                     if tag not in d_tag_db:
@@ -330,9 +352,11 @@ if __name__ == "__main__":
 
             # 2.2 write gpx track in file per subdirectory
             if len(contGpxInThisDir) > 1:
-                fileOut1 = dirpath + '/' + '000000_gps.gpx'
-                fh1 = open(fileOut1, mode='w', encoding='utf-8', newline='\n')
-                date = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
+                fileOut1 = dirpath + "/" + "000000_gps.gpx"
+                fh1 = open(fileOut1, mode="w", encoding="utf-8", newline="\n")
+                date = (
+                    datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+                )
                 gpxHead = f'<?xml version="1.0" encoding="UTF-8" ?>\n<gpx version="1.1" creator="Torben Menke, https://entorb.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n<metadata><time>{date}</time></metadata>\n<trk><trkseg>'
                 fh1.write(gpxHead + "\n")
                 fh1.write("\n".join(contGpxInThisDir))
@@ -342,10 +366,10 @@ if __name__ == "__main__":
         fh_startDir_tags.close()
 
         # write tag DB
-        fh = open(file_tag_db, mode='w', encoding='utf-8', newline='\n')
+        fh = open(file_tag_db, mode="w", encoding="utf-8", newline="\n")
         for tag in sorted(d_tag_db.keys()):
             l = d_tag_db[tag]
-            fh.write(tag+"\n")
+            fh.write(tag + "\n")
             fh.write("\n".join(sorted(l)))
             fh.write("\n\n")
         fh.close()

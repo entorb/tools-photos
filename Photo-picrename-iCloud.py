@@ -1,10 +1,15 @@
 """
-renames files and photos from iCloud Downloads based on date
-run on Windows in directory iCloud Downloads
+renames files and photos from iCloud based on date
+
+V1: run on Windows in directory iCloud Downloads
+V2: download photos from icloud.com in heaps of one month each
+do decided: use originals in HEIC format or download "compatible" ones in jpeg but reduced size? 
 
 location online: https://github.com/entorb/Tools-Photos
 """
 
+# TODO:
+# extract date and time from movies via pip install exifread
 
 import os
 import glob
