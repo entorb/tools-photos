@@ -17,11 +17,11 @@ import platform
 import re
 import datetime as dt
 
-from PIL import Image, ExifTags  # pip3 install Pillow
+# from PIL import Image, ExifTags  # pip3 install Pillow
 
-import exifread
+import exifread  # pip3 install exifread
 
-basedir = "f:\\FotoalbumSSD\\00_fotos_von_icloud_holen\\test"
+basedir = "f:\\FotoalbumSSD\\00_fotos_von_icloud_holen\\downloaded"
 outdir = "renamed"
 
 # skip these files
@@ -72,15 +72,20 @@ def get_date(path_to_file) -> dt.datetime:
     d = dt.datetime.fromtimestamp(0)  # 1.1.1970
     # for pictures try to read exif data
     fileext = os.path.splitext(path_to_file)[1]
-    if fileext.lower() in (".jpg", ".jpeg"):
-        image = Image.open(path_to_file)
-        exif = image.getexif()
-        exif_creation_time = exif.get(36867)
-        if exif_creation_time:
-            exif_creation_time = exif_creation_time.replace(":", "-", 2)
-            dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
-            d = dt_exif_creation
-    elif fileext.lower() in (".heic",):
+    # if fileext.lower() in (".jpg", ".jpeg"):
+    # image = Image.open(path_to_file)
+    # exif = image.getexif()
+    # exif_creation_time = exif.get(36867)
+    # if exif_creation_time:
+    #     exif_creation_time = exif_creation_time.replace(":", "-", 2)
+    #     dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
+    #     d = dt_exif_creation
+
+    if fileext.lower() in (
+        ".jpg",
+        ".jpeg",
+        ".heic",
+    ):
         f = open(path_to_file, "rb")
         tags = exifread.process_file(f)
         # for key, value in tags.items():
@@ -258,6 +263,7 @@ def rename_Whatsapp_files():
 def doit(sub_dir):
     os.chdir(f"{basedir}/{sub_dir}")
     os.makedirs(f"{outdir}", exist_ok=True)  # = mkdir -p
+    print(f"{basedir}/{sub_dir}")
 
     # jpeg -> jpg
     for filepath in sorted(glob.glob("*.JPEG")):
@@ -312,7 +318,7 @@ def doit(sub_dir):
 os.chdir(f"{basedir}")
 dirs = []
 for d in os.scandir("./"):
-    if d.is_dir:
+    if d.is_dir():
         dirs.append(d.name)
 
 for d in dirs:
