@@ -261,9 +261,11 @@ def rename_Whatsapp_files():
 
 
 def doit(sub_dir):
+    # print(f"{basedir}/{sub_dir}")
     os.chdir(f"{basedir}/{sub_dir}")
-    os.makedirs(f"{outdir}", exist_ok=True)  # = mkdir -p
-    print(f"{basedir}/{sub_dir}")
+    os.makedirs(outdir, exist_ok=True)  # = mkdir -p
+    for d in ("E", "H", "B", "Unfug", "Sport", "Leute", "Torben"):
+        os.makedirs(f"{outdir}/{d}", exist_ok=True)  # = mkdir -p
 
     # jpeg -> jpg
     for filepath in sorted(glob.glob("*.JPEG")):
