@@ -1,36 +1,40 @@
+#!/usr/bin/env python3
 """
-renames files and photos based on date
+Renames files and photos based on date.
+
 renames in place, not moved into subfolder
 
 location online: https://github.com/entorb/Tools-Photos
-location local:  f:\FotoalbumSSD\Skripte
+location local:  f:/FotoalbumSSD/Skripte
 """
-
-
-import os
 import glob
+import os
 import platform
-import re
 from datetime import datetime
 
-from PIL import Image, ExifTags  # pip3 install Pillow
+from PIL import Image
+
+# import re
+# from PIL import ExifTags
 
 
-suffix = ''
+suffix = ""
 # suffix = '_BM'
 
 # skip these files
-l_ignore = ('000_picrename_here.py', '.vscode')
+l_ignore = ("000_picrename_here.py", ".vscode")
 
 
 def creation_date(path_to_file):
     """
+    Get creation date.
+
     from https://stackoverflow.com/posts/39501288/1709587
     Try to get the date that a file was created, falling back to when it was
     last modified if that isn't possible.
     See http://stackoverflow.com/a/39501288/1709587 for explanation.
     """
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         return os.path.getctime(path_to_file)
     else:
         stat = os.stat(path_to_file)
@@ -44,19 +48,20 @@ def creation_date(path_to_file):
 
 def get_date(path_to_file) -> datetime:
     """
-    returns datetime of file creation
+    Return datetime of file creation.
+
     1. for jpg images try reading from exif tag
     2. for others fetch modification date and creation date and use the older one
     """
     dt = datetime.fromtimestamp(0)  # 1.1.1970
     # for pictures try to read exif data
     fileext = os.path.splitext(path_to_file)[1]
-    if (fileext.lower() in ('.jpg', '.jpeg')):
+    if fileext.lower() in (".jpg", ".jpeg"):
         image = Image.open(path_to_file)
         exif = image.getexif()
         exif_creation_time = exif.get(36867)
-        if (exif_creation_time):
-            exif_creation_time = exif_creation_time.replace(':', '-', 2)
+        if exif_creation_time:
+            exif_creation_time = exif_creation_time.replace(":", "-", 2)
             dt_exif_creation = datetime.fromisoformat(exif_creation_time)
             dt = dt_exif_creation
 
@@ -69,7 +74,10 @@ def get_date(path_to_file) -> datetime:
         ts_file_modified = os.path.getmtime(path_to_file)
         dt_file_modified = datetime.fromtimestamp(ts_file_modified)
 
-        if dt_file_created <= dt_file_modified and dt_file_created > datetime.fromtimestamp(0):
+        if (
+            dt_file_created <= dt_file_modified
+            and dt_file_created > datetime.fromtimestamp(0)
+        ):
             dt = dt_file_created
         else:
             dt = dt_file_modified
@@ -79,14 +87,14 @@ def get_date(path_to_file) -> datetime:
 
 def gen_datestr(dt: datetime) -> str:
     """
-    format datetime to string
+    Format datetime to string.
     """
     return dt.strftime("%y%m%d_%H%M%S")
 
 
-def gen_filename(filepath: str, suffix: str = '') -> tuple:
+def gen_filename(filepath: str, suffix: str = "") -> tuple:
     """
-    returns tuple of new filename , new extension
+    Return tuple of new filename , new extension.
     """
     dt = get_date(filepath)
     (filename, fileext) = os.path.splitext(filepath)
@@ -95,8 +103,8 @@ def gen_filename(filepath: str, suffix: str = '') -> tuple:
 
     filename_new = f"{datestr}{suffix}"
     fileext_new = fileext.lower()
-    if fileext_new == '.jpeg':
-        fileext_new = '.jpg'
+    if fileext_new == ".jpeg":
+        fileext_new = ".jpg"
 
     # check if outfile already exists, if so append number
     while os.path.isfile(f"{filename_new}{fileext_new}"):
@@ -108,19 +116,20 @@ def gen_filename(filepath: str, suffix: str = '') -> tuple:
 
 def rename_file(filepath_old: str, filepath_new: str):
     """
-    Perform the file renaming after some security checks
+    Perform the file renaming after some security checks.
     """
     # target_dir = os.path.split(filepath_new)[0]
     # assert os.path.isdir(target_dir), f"dir {target_dir} missing"
     assert filepath_old != filepath_new, f"{filepath_old}: newfile = oldfile"
     assert not os.path.isfile(
-        filepath_new), f"{filepath_old}: {filepath_new} already exists"
+        filepath_new,
+    ), f"{filepath_old}: {filepath_new} already exists"
     os.rename(filepath_old, filepath_new)
 
 
-def rename_files_matching(search_str: str, suffix: str = ''):
+def rename_files_matching(search_str: str, suffix: str = ""):
     """
-    use glob in currend dir applying search_str
+    Use glob in currend dir applying search_str.
     """
     for filepath in sorted(glob.glob(search_str)):
         filename = os.path.splitext(filepath)[0]

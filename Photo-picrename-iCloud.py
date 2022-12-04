@@ -1,50 +1,53 @@
+#!/usr/bin/env python3
 """
-renames files and photos from iCloud based on date
+Rename files and photos from iCloud based on date.
 
 V1: run on Windows in directory iCloud Downloads
 V2: download photos from icloud.com in heaps of one month each
-do decided: use originals in HEIC format or download "compatible" ones in jpeg but reduced size? 
+do decided: use originals in HEIC format or download "compatible" ones in jpeg but reduced size?
 
 location online: https://github.com/entorb/Tools-Photos
 """
-
 # TODO:
 # extract date and time from movies via pip install exifread
-
-import os
+import datetime as dt
 import glob
+import os
 import platform
 import re
-import datetime as dt
-
-# from PIL import Image, ExifTags  # pip3 install Pillow
 
 import exifread  # pip3 install exifread
+
+# from PIL import Image, ExifTags  # pip3 install Pillow
 
 basedir = "f:\\FotoalbumSSD\\00_fotos_von_icloud_holen\\downloaded"
 outdir = "renamed"
 
 # skip these files
-l_ignore = """
-000_rename.py
-.vscode
-""".split()
+l_ignore = [
+    "000_rename.py",
+    ".vscode",
+]
 
 
 def fix_edited_name_for_jpg():
     """
+    Remove (Edited).
+
     for some strange reason I have
     IMG_1400 (Edited).HEIC
     IMG_1400(Edited).jpg -> space to add
     """
     for filepath in sorted(glob.glob("*(Edited).*")):
-        filepath_new = re.sub(re.compile("(\d)(\(Edited\))"), r"\1 \2", filepath)
+        filepath_new = re.sub(re.compile(r"(\d)(\(Edited\))"), r"\1 \2", filepath)
         if filepath != filepath_new:
             rename_file_after_checks(filepath, filepath_new)
 
 
 def creation_date(path_to_file):
     """
+    Get creation date.
+
     from https://stackoverflow.com/posts/39501288/1709587
     Try to get the date that a file was created, falling back to when it was
     last modified if that isn't possible.
@@ -64,6 +67,8 @@ def creation_date(path_to_file):
 
 def get_date(path_to_file) -> dt.datetime:
     """
+    Get Date.
+
     returns datetime of file creation
     1. for jpg images try reading from exif tag
     2. for heic images try reading from exif tag
@@ -86,8 +91,8 @@ def get_date(path_to_file) -> dt.datetime:
         ".jpeg",
         ".heic",
     ):
-        f = open(path_to_file, "rb")
-        tags = exifread.process_file(f)
+        with open(path_to_file, "rb") as fh:
+            tags = exifread.process_file(fh)
         # for key, value in tags.items():
         #     print(f"{key}\t{value}")
         if "EXIF DateTimeOriginal" in tags and str(tags["EXIF DateTimeOriginal"]) != 0:
@@ -121,7 +126,7 @@ def get_date(path_to_file) -> dt.datetime:
 
 def gen_datestr(d: dt.datetime) -> str:
     """
-    format datetime to string
+    Format datetime to string.
     """
     s = d.strftime("%y%m%d_%H%M%S")
     if d == dt.datetime.fromtimestamp(0):
@@ -130,9 +135,14 @@ def gen_datestr(d: dt.datetime) -> str:
 
 
 def gen_filename(
-    filepath: str, suffix: str = "", out_sub_dir: str = "", remove: str = ""
+    filepath: str,
+    suffix: str = "",
+    out_sub_dir: str = "",
+    remove: str = "",
 ) -> tuple:
     """
+    Generate filename.
+
     suffix: at string starting with "_" to insert in filenname after date
     remove: a string to remove from filename
     returns tuple of new filepath, new filename, new extension
@@ -167,20 +177,20 @@ def gen_filename(
 
 def rename_file_after_checks(filepath_old: str, filepath_new: str):
     """
-    Perform the file renaming after some security checks
+    Perform the file renaming after some security checks.
     """
     target_dir = os.path.split(filepath_new)[0]
     assert os.path.isdir(target_dir), f"dir {target_dir} missing"
     assert filepath_old != filepath_new, f"{filepath_old}: newfile = oldfile"
     assert not os.path.isfile(
-        filepath_new
+        filepath_new,
     ), f"{filepath_old}: {filepath_new} already exists"
     os.rename(filepath_old, filepath_new)
 
 
 def rename_iPhone_photos():
     """
-    rename IMG_*.JPEG and same named.HEIC and _HEVC.MOV (dynamic Photos)
+    Rename IMG_*.JPEG and same named.HEIC and _HEVC.MOV (dynamic Photos).
     """
     l = []
     l.extend(glob.glob("IMG_*.JPG"))
@@ -210,10 +220,13 @@ def rename_iPhone_photos():
 
 
 def rename_files_matching(
-    search_str: str, suffix="", out_sub_dir: str = "", remove: str = ""
+    search_str: str,
+    suffix="",
+    out_sub_dir: str = "",
+    remove: str = "",
 ):
     """
-    use glob in currend dir applying search_str
+    Use glob in currend dir applying search_str.
     """
     for filepath in sorted(glob.glob(search_str)):
         if not os.path.isdir(f"{outdir}/{out_sub_dir}"):
@@ -221,7 +234,10 @@ def rename_files_matching(
 
         # filename = os.path.splitext(filepath)[0]
         filepath_new, filename_new, fileext_new = gen_filename(
-            filepath=filepath, suffix=suffix, out_sub_dir=out_sub_dir, remove=remove
+            filepath=filepath,
+            suffix=suffix,
+            out_sub_dir=out_sub_dir,
+            remove=remove,
         )
 
         print(f"{filepath} -> {filepath_new}")
@@ -230,11 +246,12 @@ def rename_files_matching(
 
 def rename_Whatsapp_files():
     """
-    rename all files of filename matching:
+    Rename all files of filename matching.
+
     - exact 36 chars
     - of 0-9,a-f,A-F
     """
-    myPatternWA = "^[0-9a-fA-F\-]+$"
+    myPatternWA = r"^[0-9a-fA-F\-]+$"
     myRegExpWA = re.compile(myPatternWA)
     out_sub_dir = "WhatsApp"
 
@@ -251,7 +268,9 @@ def rename_Whatsapp_files():
             if not os.path.isdir(f"{outdir}/{out_sub_dir}"):
                 os.mkdir(f"{outdir}/{out_sub_dir}")
             filepath_new, filename_new, fileext_new = gen_filename(
-                filepath=filepath, suffix="_WA", out_sub_dir=out_sub_dir
+                filepath=filepath,
+                suffix="_WA",
+                out_sub_dir=out_sub_dir,
             )
             print(f"{filepath} -> {filepath_new}")
             rename_file_after_checks(filepath, filepath_new)
