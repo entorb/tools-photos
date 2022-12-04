@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """
-Jpeg -> GPX Traglist and + IPTC Taglist files
+Jpeg -> GPX Traglist and + IPTC Taglist files.
 
 location online: https://github.com/entorb/Tools-Photos
-location local:  f:\FotoalbumSSD\Skripte
+location local:  f:/FotoalbumSSD/Skripte
 
 Features
 walks through a directory and its sub dirs
@@ -11,7 +12,6 @@ generates a 000000_gps.gpx track of all photos containing coordinates
 generates a 000000_tags.txt list of all tags/keywords assigned to photos
 generates a 000000_tags_db.txt list containing per tags a list of dirs where it was used
 """
-
 # Bugs
 #
 #
@@ -25,35 +25,31 @@ generates a 000000_tags_db.txt list containing per tags a list of dirs where it 
 # tags: per start_dir create a list
 # sum up the tags into the parent directory
 #
-
+import datetime as dt
 import os
+import platform
 import re
 
-import datetime as dt
-import platform
-import pytz
-
-
-from iptcinfo3 import IPTCInfo  # this works in pyhton 3!
-
 import exifread  # pip3 install exifread
+import pytz
+from iptcinfo3 import IPTCInfo  # this works in pyhton 3!
 
 # from PIL import Image
 # from PIL.ExifTags import TAGS, GPSTAGS
 
 # Settings
-l_dirs = r"""
-f:\FotoalbumSSD\Jahre\2022\
-""".split()
+l_dirs = [
+    "f:\\FotoalbumSSD\\Jahre\\2022\\",
+]
 
 file_tag_db = "f:/FotoalbumSSD/Jahre/000000_tags_db.txt"
-l_dirs_to_skip = """
-  .dtrash
-""".split()
+l_dirs_to_skip = [
+    ".dtrash",
+]
 
-l_tags_to_skip = """
-  Wer
-"""
+l_tags_to_skip = [
+    "Wer",
+]
 
 #
 # Helper functions EXIF and Tags
@@ -87,7 +83,7 @@ l_tags_to_skip = """
 
 def extractIptcKeywordTags(thisFile: str) -> list:
     """
-    extracts IPTC keywords (=tags) from jpeg file
+    Extract IPTC keywords (=tags) from jpeg file.
     """
     assert os.path.isfile(thisFile)
     iptc = IPTCInfo(thisFile)
@@ -132,7 +128,7 @@ def extractIptcKeywordTags(thisFile: str) -> list:
 
 def get_decimal_from_dms(dms: tuple, ref: str) -> float:
     """
-    converts exif internal DMS storage of GPS coordinates into a float
+    Convert exif internal DMS storage of GPS coordinates into a float.
     """
     # from https://developer.here.com/blog/getting-started-with-geocoding-exif-image-metadata-in-python3
     # this was broken with new package version
@@ -150,12 +146,14 @@ def get_decimal_from_dms(dms: tuple, ref: str) -> float:
 
 
 def get_coordinates(geotags) -> tuple:
-    """converts exif internal storage of GPS coordinates into a (lat,lon)"""
+    """Convert exif internal storage of GPS coordinates into a (lat,lon)."""
     lat = get_decimal_from_dms(
-        geotags["GPSLatitude"].values, geotags["GPSLatitudeRef"].values
+        geotags["GPSLatitude"].values,
+        geotags["GPSLatitudeRef"].values,
     )
     lon = get_decimal_from_dms(
-        geotags["GPSLongitude"].values, geotags["GPSLongitudeRef"].values
+        geotags["GPSLongitude"].values,
+        geotags["GPSLongitudeRef"].values,
     )
     alt = 0
     if "GPSAltitude" in geotags:
@@ -171,6 +169,8 @@ def get_coordinates(geotags) -> tuple:
 
 def creation_date(path_to_file):
     """
+    Get creation date.
+
     from https://stackoverflow.com/posts/39501288/1709587
     Try to get the date that a file was created, falling back to when it was
     last modified if that isn't possible.
@@ -229,6 +229,8 @@ def get_pic_datetime_as_str(path_to_file: str, exif_tags: dict) -> str:
 
 def dateStrLocalToUtc(datestr: str) -> str:
     """
+    Date conversion: local to UTC.
+
     e.g. '2019:01:03 09:17:15' -> '2019-01-03T08:17:15+00:00'
     The format is "YYYY:MM:DD HH:MM:SS" with time shown in 24-hour format, and the date and time separated by one blank character (hex 20).
     https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/exif/datetimeoriginal.html
@@ -259,8 +261,11 @@ if __name__ == "__main__":
     d_tag_db = {}
     for start_dir in l_dirs:
         fileOut_startDir_tags = start_dir + "/" + "000000_tags.txt"
-        fh_startDir_tags = open(
-            fileOut_startDir_tags, mode="w", encoding="utf-8", newline="\n"
+        fh_startDir_tags = open(  # noqa: SIM115
+            fileOut_startDir_tags,
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
         )
 
         # walk into path and fetch all files matching extension jpe?g
@@ -302,12 +307,13 @@ if __name__ == "__main__":
                         contTagsInThisDir[tag] += 1
 
                 # 1.2 EXIF for date and geo coordinates
-                f = open(fileIn, "rb")
-                exif_tags = exifread.process_file(f)
+                with open(fileIn, "rb") as fh:
+                    exif_tags = exifread.process_file(fh)
 
                 # 1.2.1 date
                 picDate = get_pic_datetime_as_str(
-                    path_to_file=fileIn, exif_tags=exif_tags
+                    path_to_file=fileIn,
+                    exif_tags=exif_tags,
                 )
 
                 # 1.2.2 Geo location
@@ -342,16 +348,15 @@ if __name__ == "__main__":
             # 2.1 write list of tags in file per subdirectory
             if len(contTagsInThisDir) > 1:
                 fileOut2 = dirpath + "/" + "000000_tags.txt"
-                fh2 = open(fileOut2, mode="w", encoding="utf-8", newline="\n")
-                for k in sorted(contTagsInThisDir.keys()):
-                    fh2.write("" + k + "\t" + str(contTagsInThisDir[k]) + "\n")
-                fh2.close()
+                with open(fileOut2, mode="w", encoding="utf-8", newline="\n") as fh2:
+                    for k in sorted(contTagsInThisDir.keys()):
+                        fh2.write("" + k + "\t" + str(contTagsInThisDir[k]) + "\n")
 
                 fh_startDir_tags.write(
                     dirpath_rel
                     + "\t"
                     + ", ".join(sorted(contTagsInThisDir.keys()))
-                    + "\n"
+                    + "\n",
                 )
 
                 for tag in sorted(contTagsInThisDir.keys()):
@@ -362,21 +367,19 @@ if __name__ == "__main__":
             # 2.2 write gpx track in file per subdirectory
             if len(contGpxInThisDir) > 1:
                 fileOut1 = dirpath + "/" + "000000_gps.gpx"
-                fh1 = open(fileOut1, mode="w", encoding="utf-8", newline="\n")
-                date = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-                gpxHead = f'<?xml version="1.0" encoding="UTF-8" ?>\n<gpx version="1.1" creator="Torben Menke, https://entorb.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n<metadata><time>{date}</time></metadata>\n<trk><trkseg>'
-                fh1.write(gpxHead + "\n")
-                fh1.write("\n".join(contGpxInThisDir))
-                fh1.write("\n</trkseg></trk></gpx>\n")
-                fh1.close()
+                with open(fileOut1, mode="w", encoding="utf-8", newline="\n") as fh1:
+                    date = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+                    gpxHead = f'<?xml version="1.0" encoding="UTF-8" ?>\n<gpx version="1.1" creator="Torben Menke, https://entorb.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n<metadata><time>{date}</time></metadata>\n<trk><trkseg>'
+                    fh1.write(gpxHead + "\n")
+                    fh1.write("\n".join(contGpxInThisDir))
+                    fh1.write("\n</trkseg></trk></gpx>\n")
 
         fh_startDir_tags.close()
 
         # write tag DB
-        fh = open(file_tag_db, mode="w", encoding="utf-8", newline="\n")
-        for tag in sorted(d_tag_db.keys()):
-            l = d_tag_db[tag]
-            fh.write(tag + "\n")
-            fh.write("\n".join(sorted(l)))
-            fh.write("\n\n")
-        fh.close()
+        with open(file_tag_db, mode="w", encoding="utf-8", newline="\n") as fh:
+            for tag in sorted(d_tag_db.keys()):
+                l = d_tag_db[tag]
+                fh.write(tag + "\n")
+                fh.write("\n".join(sorted(l)))
+                fh.write("\n\n")

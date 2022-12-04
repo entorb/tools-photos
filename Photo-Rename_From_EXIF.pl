@@ -123,4 +123,3 @@ sub exifrename {
   say "$file -> $fileNew";
   rename $file, $fileNew unless -f $fileNew;
 }
-
