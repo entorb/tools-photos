@@ -1,15 +1,13 @@
+#!/usr/bin/env python3
 """
-'synchronizes' source and target photo directories while resizing file in target dir to 1920px
+Synchronizes source and target photo directories while resizing file in target dir to 1920px.
 
 location online: https://github.com/entorb/Tools-Photos
-location local: f:\FotoalbumSSD\Skripte
+location local: f:/FotoalbumSSD/Skripte
 """
-
 # config is in PhotoSyncShrink.ini
-
 # requirements:
 # ImageMagick https://imagemagick.org
-
 # DONE
 # 1. delete from dirTarget
 # 1.1 dirs that are not in dirSource
@@ -21,19 +19,17 @@ location local: f:\FotoalbumSSD\Skripte
 # 2.3 shrinking pictures
 # target: remove blacklisted files / dirs
 # target: remove video and other files if not included in selection (.ini file)
-
 # TODO
 # blacklist: handle "*"
-
 # Bugs
-
 # setup
-import time
-import subprocess
+import multiprocessing  # for multiprocessing.cpu_count()
 import os
 import shutil
+import subprocess  # noqa: S404
+import time
 from configparser import ConfigParser
-import multiprocessing # for multiprocessing.cpu_count()
+
 # from PIL import Image # pip3 install Pillow
 # import piexif # pip3 install piexif
 # PROBLEM:
@@ -44,13 +40,13 @@ import multiprocessing # for multiprocessing.cpu_count()
 # maybe later: V2: use python module https://docs.wand-py.org install see https://docs.wand-py.org/en/0.6.5/guide/install.html#install-imagemagick-on-windows
 
 
-o = {} # options / settions / configuration parsed from .ini file
+o = {}  # options / settions / configuration parsed from .ini file
 l_blacklist = []
 l_ext_img_files = []
 l_ext_video_files = []
 l_ext_other_files = []
 l_magick_param = []
-l_subprocesses = [] # list of subprocesses
+l_subprocesses = []  # list of subprocesses
 
 # TODO
 # shutil.rmtree("e:/tmp/target-PY/")
@@ -58,227 +54,242 @@ l_subprocesses = [] # list of subprocesses
 # if os.path.isfile("e:/tmp/target-PY/Dir1/180000 Rennen/180127_121042_tm.JPEG"):
 #   os.remove("e:/tmp/target-PY/Dir1/180000 Rennen/180127_121042_tm.JPEG")
 
-### Helper Functions ###
+# Helper Functions
 
 
 def read_config():
-  config = ConfigParser(interpolation=None)
-  # interpolation=None -> treats % in values as char % instead of interpreting it
-  config.read('Photo-SyncShrink.ini', encoding='utf-8')
+    config = ConfigParser(interpolation=None)
+    # interpolation=None -> treats % in values as char % instead of interpreting it
+    config.read("Photo-SyncShrink.ini", encoding="utf-8")
 
-  o['dirSourceBase'] = config.get('general', 'dirSourceBase').replace('\\', '/')
-  o['dirTargetBase'] = config.get('general', 'dirTargetBase').replace('\\', '/')
-  assert os.path.isdir(
-    o['dirSourceBase']), f"source dir not found: {o['dirSource']}"
-  assert os.path.isdir(
-    o['dirTargetBase']), f"target dir not found: {o['dirTarget']}"
+    o["dirSourceBase"] = config.get("general", "dirSourceBase").replace("\\", "/")
+    o["dirTargetBase"] = config.get("general", "dirTargetBase").replace("\\", "/")
+    assert os.path.isdir(
+        o["dirSourceBase"],
+    ), f"source dir not found: {o['dirSource']}"
+    assert os.path.isdir(
+        o["dirTargetBase"],
+    ), f"target dir not found: {o['dirTarget']}"
 
-  global l_whitelist
-  l_whitelist = sorted(config.get('general', 'whitelist').split())
+    global l_whitelist
+    l_whitelist = sorted(config.get("general", "whitelist").split())
 
-  global l_blacklist
-  l_blacklist = sorted(config.get('general', 'blacklist').lower().split())
+    global l_blacklist
+    l_blacklist = sorted(config.get("general", "blacklist").lower().split())
 
-  o['copy_video_files'] = config.getboolean(
-    'general', 'copy_video_files')
-  o['copy_other_files'] = config.getboolean(
-    'general', 'copy_other_files')
-  o['copy_all_files'] = config.getboolean(
-    'general', 'copy_all_files')
+    o["copy_video_files"] = config.getboolean(
+        "general",
+        "copy_video_files",
+    )
+    o["copy_other_files"] = config.getboolean(
+        "general",
+        "copy_other_files",
+    )
+    o["copy_all_files"] = config.getboolean(
+        "general",
+        "copy_all_files",
+    )
 
-  global l_ext_img_files
-  l_ext_img_files = sorted([e.lower()
-               for e in config.get('general', 'ext_img_files').split()])
-  global l_ext_video_files
-  l_ext_video_files = sorted([e.lower()
-                for e in config.get('general', 'ext_video_files').split()])
+    global l_ext_img_files
+    l_ext_img_files = sorted(
+        [e.lower() for e in config.get("general", "ext_img_files").split()],
+    )
+    global l_ext_video_files
+    l_ext_video_files = sorted(
+        [e.lower() for e in config.get("general", "ext_video_files").split()],
+    )
 
-  global l_ext_other_files
-  l_ext_other_files = sorted([e.lower()
-                for e in config.get('general', 'ext_other_files').split()])
+    global l_ext_other_files
+    l_ext_other_files = sorted(
+        [e.lower() for e in config.get("general", "ext_other_files").split()],
+    )
 
-  global l_ext_valid
-  l_ext_valid = l_ext_img_files
-  if o['copy_video_files']:
-    l_ext_valid.extend(l_ext_video_files)
-  if o['copy_other_files']:
-    l_ext_valid.extend(l_ext_other_files)
+    global l_ext_valid
+    l_ext_valid = l_ext_img_files
+    if o["copy_video_files"]:
+        l_ext_valid.extend(l_ext_video_files)
+    if o["copy_other_files"]:
+        l_ext_valid.extend(l_ext_other_files)
 
+    o["img_max_size"] = config.getint("general", "img_max_size")
+    o["jpeg_quality"] = config.getint("general", "jpeg_quality")
+    if o["jpeg_quality"] == 0:
+        o["jpeg_quality"] = "keep"
 
-  o['img_max_size'] = config.getint('general', 'img_max_size')
-  o['jpeg_quality'] = config.getint('general', 'jpeg_quality')
-  if o['jpeg_quality'] == 0:
-    o['jpeg_quality'] = 'keep'
+    o["jpeg_remove_exif"] = config.getboolean("general", "jpeg_remove_exif")
 
-  o['jpeg_remove_exif'] = config.getboolean('general', 'jpeg_remove_exif')
+    o["max_processes"] = multiprocessing.cpu_count()
 
-  o['max_processes'] = multiprocessing.cpu_count()
-
-  print("settings")
-  for key, value in o.items():
-    print(f" {key} = {value}")
-  print("blacklist")
-  for value in l_blacklist:
-    print(f" {value}")
-  print("")
+    print("settings")
+    for key, value in o.items():
+        print(f" {key} = {value}")
+    print("blacklist")
+    for value in l_blacklist:
+        print(f" {value}")
+    print("")
 
 
 def is_in_blacklist(path: str):
-  ret = False
-  for item in l_blacklist:
-    if item in path.lower():
-      ret = True
-      break
-  return ret
+    ret = False
+    for item in l_blacklist:
+        if item in path.lower():
+            ret = True
+            break
+    return ret
 
 
 def set_magick_param():
-  """ sets common parameters for image magick convert command"""
-  l_magick_param.append('-auto-orient')
-  if o['jpeg_remove_exif'] == True:
-    l_magick_param.append('-strip')
-  l_magick_param.extend(
-    ('-size', f"{o['img_max_size']}x{o['img_max_size']}"))
-  l_magick_param.extend(
-    ('-resize', f"{o['img_max_size']}x{o['img_max_size']}>"))
-  # "1920x1920>" -> keep aspect ratio and resize only if larger
+    """Set common parameters for image magick convert command."""
+    l_magick_param.append("-auto-orient")
+    if o["jpeg_remove_exif"] is True:
+        l_magick_param.append("-strip")
+    l_magick_param.extend(
+        ("-size", f"{o['img_max_size']}x{o['img_max_size']}"),
+    )
+    l_magick_param.extend(
+        ("-resize", f"{o['img_max_size']}x{o['img_max_size']}>"),
+    )
+    # "1920x1920>" -> keep aspect ratio and resize only if larger
 
 
 def process_enqueue(new_process_parameters):
-  global l_subprocesses
-  # wait for free slot
-  while len(l_subprocesses) >= o['max_processes']:
-    process_remove_finished_from_queue()
-    time.sleep(0.1) # sleep 0.1s
-  process = subprocess.Popen(new_process_parameters,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                universal_newlines=True)
-  l_subprocesses.append(process)
+    global l_subprocesses
+    # wait for free slot
+    while len(l_subprocesses) >= o["max_processes"]:
+        process_remove_finished_from_queue()
+        time.sleep(0.1)  # sleep 0.1s
+    process = subprocess.Popen(  # noqa: S603
+        new_process_parameters,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    l_subprocesses.append(process)
 
 
 def process_remove_finished_from_queue():
-  global l_subprocesses
-  i = 0
-  while i <= len(l_subprocesses) - 1:
-    process = l_subprocesses[i]
-    if process.poll != None: # has already finished
-      process_print_output(process)
-      l_subprocesses.pop(i)
-    else: # still running
-      i += 1
+    global l_subprocesses
+    i = 0
+    while i <= len(l_subprocesses) - 1:
+        process = l_subprocesses[i]
+        if process.poll is not None:  # has already finished
+            process_print_output(process)
+            l_subprocesses.pop(i)
+        else:  # still running
+            i += 1
 
 
 def process_wait_for_all_finished():
-  global l_subprocesses
-  for process in l_subprocesses:
-    process_print_output(process)
-  l_subprocesses = [] # empty list of done subprocesses
+    global l_subprocesses
+    for process in l_subprocesses:
+        process_print_output(process)
+    l_subprocesses = []  # empty list of done subprocesses
 
 
 def process_print_output(process):
-  """waits for process to finish and prints process output"""
-  stdout, stderr = process.communicate()
-  if stdout != '':
-    print(f'Out: {stdout}')
-  if stderr != '':
-    print(f'ERROR: {stderr}')
+    """Wait for process to finish and prints process output."""
+    stdout, stderr = process.communicate()
+    if stdout != "":
+        print(f"Out: {stdout}")
+    if stderr != "":
+        print(f"ERROR: {stderr}")
 
 
-### Main Functions ###
+# Main Functions
 
 
 def clean_up_target_base():
-  print("=== delete from dirTargetBase ===")
-  # I only delete dirs not in whitelist, ignoring aby file in target dir
-  for d in os.scandir(o['dirTargetBase']):
-    if d.is_dir():
-      if d.name not in l_whitelist:
-        print(f"del {d.name}")
-        shutil.rmtree(d.path)
+    print("=== delete from dirTargetBase ===")
+    # I only delete dirs not in whitelist, ignoring aby file in target dir
+    for d in os.scandir(o["dirTargetBase"]):
+        if d.is_dir() and d.name not in l_whitelist:
+            print(f"del {d.name}")
+            shutil.rmtree(d.path)
+
 
 def clean_up_target():
-  print("=== delete from dirTarget ===")
-  for (dirpath, dirnames, filenames) in os.walk(o['dirTarget']):
-    dirpath = dirpath.replace('\\', '/')
+    print("=== delete from dirTarget ===")
+    for (dirpath, dirnames, filenames) in os.walk(o["dirTarget"]):
+        dirpath = dirpath.replace("\\", "/")
 
-    # 1. check dirs
-    for childitem in dirnames:
-      targetPath = os.path.join(dirpath, childitem).replace('\\', '/')
-      targetPathRel = targetPath[len(o['dirTarget']):]
-      # 1.1 delete blacklisted dirs
-      if is_in_blacklist(targetPath):
-        print(f"del {targetPath}")
-        shutil.rmtree(targetPath)
-        continue
+        # 1. check dirs
+        for childitem in dirnames:
+            targetPath = os.path.join(dirpath, childitem).replace("\\", "/")
+            targetPathRel = targetPath[len(o["dirTarget"]) :]
+            # 1.1 delete blacklisted dirs
+            if is_in_blacklist(targetPath):
+                print(f"del {targetPath}")
+                shutil.rmtree(targetPath)
+                continue
 
-      # 1.2 delete dirs not in source
-      # replace from the left only
-      sourcePath = o['dirSource'] + targetPath[len(o['dirTarget']):]
-      # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
-      # print(f"{targetPath} <-- {sourcePath}")
-      if not (os.path.isdir(sourcePath)):
-        print(f"del {targetPathRel}")
-        shutil.rmtree(targetPath)
-        continue
+            # 1.2 delete dirs not in source
+            # replace from the left only
+            sourcePath = o["dirSource"] + targetPath[len(o["dirTarget"]) :]
+            # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
+            # print(f"{targetPath} <-- {sourcePath}")
+            if not (os.path.isdir(sourcePath)):
+                print(f"del {targetPathRel}")
+                shutil.rmtree(targetPath)
+                continue
 
-    # 2. check files
-    for childitem in filenames:
-      targetPath = os.path.join(dirpath, childitem).replace('\\', '/')
-      targetPathRel = targetPath[len(o['dirTarget']):]
-      fileext = os.path.splitext(childitem)[1][1:].lower() # without leading '.'
+        # 2. check files
+        for childitem in filenames:
+            targetPath = os.path.join(dirpath, childitem).replace("\\", "/")
+            targetPathRel = targetPath[len(o["dirTarget"]) :]
+            fileext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
 
-      # 2.1 delete blacklisted files
-      # 2.2 delete files based on extension
-      if is_in_blacklist(targetPath) or fileext not in l_ext_valid:
-        print(f"del {targetPathRel}")
-        os.remove(targetPath)
-        continue
-      
-      # 2.3 delete files not in source
-      # replace from the left only
-      sourcePath = o['dirSource'] + targetPath[len(o['dirTarget']):]
-      # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
-      # print(f"{targetPath} <-- {sourcePath}")
-      if not (os.path.isfile(sourcePath)):
-        print(f"del {targetPathRel}")
-        os.remove(targetPath)
-        continue
+            # 2.1 delete blacklisted files
+            # 2.2 delete files based on extension
+            if is_in_blacklist(targetPath) or fileext not in l_ext_valid:
+                print(f"del {targetPathRel}")
+                os.remove(targetPath)
+                continue
+
+            # 2.3 delete files not in source
+            # replace from the left only
+            sourcePath = o["dirSource"] + targetPath[len(o["dirTarget"]) :]
+            # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
+            # print(f"{targetPath} <-- {sourcePath}")
+            if not (os.path.isfile(sourcePath)):
+                print(f"del {targetPathRel}")
+                os.remove(targetPath)
+                continue
 
 
 def sync_source_to_target():
-  print("=== sync source to target ===")
-  for (dirpath, dirnames, filenames) in os.walk(o['dirSource']):
-    # create sub dirs
-    for childitem in dirnames:
-      sourcePath = os.path.join(dirpath, childitem).replace('\\', '/')
-      if not is_in_blacklist(sourcePath):
-        targetPath = o['dirTarget'] + sourcePath[len(o['dirSource']):]
-        os.makedirs(targetPath, exist_ok=True) # = mkdir -p
-    # transfer files
-    for childitem in filenames:
-      sourcePath = os.path.join(dirpath, childitem).replace('\\', '/')
+    print("=== sync source to target ===")
+    for (dirpath, dirnames, filenames) in os.walk(o["dirSource"]):
+        # create sub dirs
+        for childitem in dirnames:
+            sourcePath = os.path.join(dirpath, childitem).replace("\\", "/")
+            if not is_in_blacklist(sourcePath):
+                targetPath = o["dirTarget"] + sourcePath[len(o["dirSource"]) :]
+                os.makedirs(targetPath, exist_ok=True)  # = mkdir -p
+        # transfer files
+        for childitem in filenames:
+            sourcePath = os.path.join(dirpath, childitem).replace("\\", "/")
 
-      if is_in_blacklist(sourcePath):
-        continue # skip this file
+            if is_in_blacklist(sourcePath):
+                continue  # skip this file
 
-      targetPath = o['dirTarget'] + sourcePath[len(o['dirSource']):]
-      # a = o['dirTarget']
-      # b = sourcePath
-      sourcePathRel = sourcePath[len(o['dirSource']):]
-      # d = targetPath
-      if os.path.isfile(targetPath):
-        continue # do nothing if file already exists
+            targetPath = o["dirTarget"] + sourcePath[len(o["dirSource"]) :]
+            # a = o['dirTarget']
+            # b = sourcePath
+            sourcePathRel = sourcePath[len(o["dirSource"]) :]
+            # d = targetPath
+            if os.path.isfile(targetPath):
+                continue  # do nothing if file already exists
 
-      fileext = os.path.splitext(
-        childitem)[1][1:].lower() # without leading '.'
+            fileext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
 
-      if fileext in l_ext_valid:
-        if fileext in ('jpg', 'jpeg'): # resize jpeg images
-          print(f"resizing {sourcePathRel}")
-          resize_image_ImageMagick(sourcePath)
-        else: # copy other files
-          print(f"cp {sourcePathRel}")
-          shutil.copyfile(sourcePath, targetPath)
+            if fileext in l_ext_valid:
+                if fileext in ("jpg", "jpeg"):  # resize jpeg images
+                    print(f"resizing {sourcePathRel}")
+                    resize_image_ImageMagick(sourcePath)
+                else:  # copy other files
+                    print(f"cp {sourcePathRel}")
+                    shutil.copyfile(sourcePath, targetPath)
+
 
 # def resize_image_PIL(fileIn: str):
 #   fileOut = o['dirTarget'] + fileIn[len(o['dirSource']):]
@@ -298,34 +309,37 @@ def sync_source_to_target():
 #   img.save(fp=fileOut, format="JPEG",
 #       quality=o['jpeg_quality'], exif=exif_bytes)
 
-def resize_image_ImageMagick(fileIn: str):
-  """resize jpeg images usuing imagemagick command line tool
-  command:
-  magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920 -resize 1920x1920> e:/tmp/target-PY/Dir1/180127_121042_tm.jpg
-  """
-  fileOut = o['dirTarget'] + fileIn[len(o['dirSource']):]
-  param = []
-  if os.name == 'nt':
-    param.append("magick") # for windows we need to prepend this
-  param.extend(("convert", fileIn))
-  param.extend(l_magick_param)
-  param.append(fileOut)
-  # V1 single thread
-  # process = subprocess.run(param, capture_output=True, text=True)
-  # print(process.stdout)
 
-  # V2 spawn subprocess
-  process_enqueue(param)
+def resize_image_ImageMagick(fileIn: str):
+    """
+    Resize jpeg images usuing imagemagick command line tool.
+
+    command:
+    magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920 -resize 1920x1920> e:/tmp/target-PY/Dir1/180127_121042_tm.jpg
+    """
+    fileOut = o["dirTarget"] + fileIn[len(o["dirSource"]) :]
+    param = []
+    if os.name == "nt":
+        param.append("magick")  # for windows we need to prepend this
+    param.extend(("convert", fileIn))
+    param.extend(l_magick_param)
+    param.append(fileOut)
+    # V1 single thread
+    # process = subprocess.run(param, capture_output=True, text=True)
+    # print(process.stdout)
+
+    # V2 spawn subprocess
+    process_enqueue(param)
 
 
 if __name__ == "__main__":
-  read_config()
-  set_magick_param()
-  clean_up_target_base()
-  for dir_whitelist in l_whitelist:
-    print (f"\n====== {dir_whitelist} ======")
-    o['dirSource'] = o['dirSourceBase'] + "\\" + dir_whitelist
-    o['dirTarget'] = o['dirTargetBase'] + "\\" + dir_whitelist
-    clean_up_target()
-    sync_source_to_target()
-    process_wait_for_all_finished()
+    read_config()
+    set_magick_param()
+    clean_up_target_base()
+    for dir_whitelist in l_whitelist:
+        print(f"\n====== {dir_whitelist} ======")
+        o["dirSource"] = o["dirSourceBase"] + "\\" + dir_whitelist
+        o["dirTarget"] = o["dirTargetBase"] + "\\" + dir_whitelist
+        clean_up_target()
+        sync_source_to_target()
+        process_wait_for_all_finished()
