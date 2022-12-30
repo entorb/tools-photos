@@ -20,9 +20,9 @@ location local: f:/FotoalbumSSD/Skripte
 # target: remove blacklisted files / dirs
 # target: remove video and other files if not included in selection (.ini file)
 # TODO
+# use Pathlib
 # blacklist: handle "*"
-# Bugs
-# setup
+
 import multiprocessing  # for multiprocessing.cpu_count()
 import os
 import shutil
@@ -40,13 +40,14 @@ from configparser import ConfigParser
 # maybe later: V2: use python module https://docs.wand-py.org install see https://docs.wand-py.org/en/0.6.5/guide/install.html#install-imagemagick-on-windows
 
 
-o = {}  # options / settions / configuration parsed from .ini file
-l_blacklist = []
-l_ext_img_files = []
-l_ext_video_files = []
-l_ext_other_files = []
-l_magick_param = []
-l_subprocesses = []  # list of subprocesses
+# options / settions / configuration parsed from .ini file
+o: dict[str, str | bool | int] = {}
+l_blacklist: list[str] = []
+l_ext_img_files: list[str] = []
+l_ext_video_files: list[str] = []
+l_ext_other_files: list[str] = []
+l_magick_param: list[str] = []
+l_subprocesses: list[subprocess.Popen[str]] = []  # list of subprocesses
 
 # TODO
 # shutil.rmtree("e:/tmp/target-PY/")
@@ -57,22 +58,25 @@ l_subprocesses = []  # list of subprocesses
 # Helper Functions
 
 
-def read_config():
+def read_config() -> None:
     config = ConfigParser(interpolation=None)
     # interpolation=None -> treats % in values as char % instead of interpreting it
     config.read("Photo-SyncShrink.ini", encoding="utf-8")
 
     o["dirSourceBase"] = config.get("general", "dirSourceBase").replace("\\", "/")
     o["dirTargetBase"] = config.get("general", "dirTargetBase").replace("\\", "/")
+    assert isinstance(o["dirSourceBase"], str)
+    assert isinstance(o["dirTargetBase"], str)
+
     assert os.path.isdir(
         o["dirSourceBase"],
-    ), f"source dir not found: {o['dirSource']}"
+    ), f"source dir not found: {o['dirSourceBase']}"
     assert os.path.isdir(
         o["dirTargetBase"],
-    ), f"target dir not found: {o['dirTarget']}"
+    ), f"target dir not found: {o['dirTargetBase']}"
 
     global l_whitelist
-    l_whitelist = sorted(config.get("general", "whitelist").split())
+    l_whitelist = sorted(config.get("general", "whitelist").lower().split())
 
     global l_blacklist
     l_blacklist = sorted(config.get("general", "blacklist").lower().split())
@@ -129,7 +133,7 @@ def read_config():
     print("")
 
 
-def is_in_blacklist(path: str):
+def is_in_blacklist(path: str) -> bool:
     ret = False
     for item in l_blacklist:
         if item in path.lower():
@@ -138,7 +142,7 @@ def is_in_blacklist(path: str):
     return ret
 
 
-def set_magick_param():
+def set_magick_param() -> None:
     """Set common parameters for image magick convert command."""
     l_magick_param.append("-auto-orient")
     if o["jpeg_remove_exif"] is True:
@@ -152,10 +156,10 @@ def set_magick_param():
     # "1920x1920>" -> keep aspect ratio and resize only if larger
 
 
-def process_enqueue(new_process_parameters):
+def process_enqueue(new_process_parameters: list[str]) -> None:
     global l_subprocesses
     # wait for free slot
-    while len(l_subprocesses) >= o["max_processes"]:
+    while len(l_subprocesses) >= o["max_processes"]:  # type: ignore
         process_remove_finished_from_queue()
         time.sleep(0.1)  # sleep 0.1s
     process = subprocess.Popen(  # noqa: S603
@@ -167,7 +171,7 @@ def process_enqueue(new_process_parameters):
     l_subprocesses.append(process)
 
 
-def process_remove_finished_from_queue():
+def process_remove_finished_from_queue() -> None:
     global l_subprocesses
     i = 0
     while i <= len(l_subprocesses) - 1:
@@ -179,14 +183,14 @@ def process_remove_finished_from_queue():
             i += 1
 
 
-def process_wait_for_all_finished():
+def process_wait_for_all_finished() -> None:
     global l_subprocesses
     for process in l_subprocesses:
         process_print_output(process)
     l_subprocesses = []  # empty list of done subprocesses
 
 
-def process_print_output(process):
+def process_print_output(process: subprocess.Popen[str]) -> None:
     """Wait for process to finish and prints process output."""
     stdout, stderr = process.communicate()
     if stdout != "":
@@ -198,17 +202,19 @@ def process_print_output(process):
 # Main Functions
 
 
-def clean_up_target_base():
+def clean_up_target_base() -> None:
     print("=== delete from dirTargetBase ===")
-    # I only delete dirs not in whitelist, ignoring aby file in target dir
+    # I only delete dirs not in whitelist, ignoring any file in target dir
     for d in os.scandir(o["dirTargetBase"]):
         if d.is_dir() and d.name not in l_whitelist:
             print(f"del {d.name}")
             shutil.rmtree(d.path)
 
 
-def clean_up_target():
+def clean_up_target() -> None:
     print("=== delete from dirTarget ===")
+    assert isinstance(o["dirSource"], str)
+    assert isinstance(o["dirTarget"], str)
     for (dirpath, dirnames, filenames) in os.walk(o["dirTarget"]):
         dirpath = dirpath.replace("\\", "/")
 
@@ -256,8 +262,10 @@ def clean_up_target():
                 continue
 
 
-def sync_source_to_target():
+def sync_source_to_target() -> None:
     print("=== sync source to target ===")
+    assert isinstance(o["dirSource"], str)
+    assert isinstance(o["dirTarget"], str)
     for (dirpath, dirnames, filenames) in os.walk(o["dirSource"]):
         # create sub dirs
         for childitem in dirnames:
@@ -310,15 +318,17 @@ def sync_source_to_target():
 #       quality=o['jpeg_quality'], exif=exif_bytes)
 
 
-def resize_image_ImageMagick(fileIn: str):
+def resize_image_ImageMagick(fileIn: str) -> None:
     """
     Resize jpeg images usuing imagemagick command line tool.
 
     command:
     magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920 -resize 1920x1920> e:/tmp/target-PY/Dir1/180127_121042_tm.jpg
     """
+    assert isinstance(o["dirSource"], str)
+    assert isinstance(o["dirTarget"], str)
     fileOut = o["dirTarget"] + fileIn[len(o["dirSource"]) :]
-    param = []
+    param: list[str] = []
     if os.name == "nt":
         param.append("magick")  # for windows we need to prepend this
     param.extend(("convert", fileIn))
@@ -336,10 +346,13 @@ if __name__ == "__main__":
     read_config()
     set_magick_param()
     clean_up_target_base()
+    assert isinstance(o["dirSourceBase"], str)
+    assert isinstance(o["dirTargetBase"], str)
     for dir_whitelist in l_whitelist:
         print(f"\n====== {dir_whitelist} ======")
         o["dirSource"] = o["dirSourceBase"] + "\\" + dir_whitelist
         o["dirTarget"] = o["dirTargetBase"] + "\\" + dir_whitelist
+
         clean_up_target()
         sync_source_to_target()
         process_wait_for_all_finished()
