@@ -269,7 +269,7 @@ if __name__ == "__main__":
         )
 
         # walk into path and fetch all files matching extension jpe?g
-        for (dirpath, dirnames, filenames) in os.walk(start_dir, topdown=True):
+        for dirpath, dirnames, filenames in os.walk(start_dir, topdown=True):
             dirpath = dirpath.replace("\\", "/")
             dirpath_rel = dirpath[len(start_dir) + 1 :]
             if dirpath_rel == "":

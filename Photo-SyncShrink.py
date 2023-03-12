@@ -215,7 +215,7 @@ def clean_up_target() -> None:
     print("=== delete from dirTarget ===")
     assert isinstance(o["dirSource"], str)
     assert isinstance(o["dirTarget"], str)
-    for (dirpath, dirnames, filenames) in os.walk(o["dirTarget"]):
+    for dirpath, dirnames, filenames in os.walk(o["dirTarget"]):
         dirpath = dirpath.replace("\\", "/")
 
         # 1. check dirs
@@ -266,7 +266,7 @@ def sync_source_to_target() -> None:
     print("=== sync source to target ===")
     assert isinstance(o["dirSource"], str)
     assert isinstance(o["dirTarget"], str)
-    for (dirpath, dirnames, filenames) in os.walk(o["dirSource"]):
+    for dirpath, dirnames, filenames in os.walk(o["dirSource"]):
         # create sub dirs
         for childitem in dirnames:
             sourcePath = os.path.join(dirpath, childitem).replace("\\", "/")
