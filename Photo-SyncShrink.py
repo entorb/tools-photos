@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Synchronizes source and target photo directories while resizing file in target dir to 1920px.
+Synchronizes source and target photo directories.
 
+resizing file in target dir to 1920px.
 location online: https://github.com/entorb/Tools-Photos
 location local: f:/FotoalbumSSD/Skripte
 """
@@ -323,7 +324,8 @@ def resize_image_ImageMagick(fileIn: str) -> None:
     Resize jpeg images usuing imagemagick command line tool.
 
     command:
-    magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920 -resize 1920x1920> e:/tmp/target-PY/Dir1/180127_121042_tm.jpg
+    magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920
+    -resize 1920x1920> e:/tmp/target-PY/Dir1/180127_121042_tm.jpg
     """
     assert isinstance(o["dirSource"], str)
     assert isinstance(o["dirTarget"], str)
