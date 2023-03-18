@@ -4,7 +4,8 @@ Rename files and photos from iCloud based on date.
 
 V1: run on Windows in directory iCloud Downloads
 V2: download photos from icloud.com in heaps of one month each
-do decided: use originals in HEIC format or download "compatible" ones in jpeg but reduced size?
+do decided: use originals in HEIC format or download "compatible" ones in jpeg
+but reduced size?
 
 location online: https://github.com/entorb/Tools-Photos
 """
@@ -192,10 +193,10 @@ def rename_iPhone_photos():
     """
     Rename IMG_*.JPEG and same named.HEIC and _HEVC.MOV (dynamic Photos).
     """
-    l = []
-    l.extend(glob.glob("IMG_*.JPG"))
-    l.extend(glob.glob("IMG_*.JPEG"))
-    for filepath in sorted(l):
+    list_of_files = []
+    list_of_files.extend(glob.glob("IMG_*.JPG"))
+    list_of_files.extend(glob.glob("IMG_*.JPEG"))
+    for filepath in sorted(list_of_files):
         filename = os.path.splitext(filepath)[0]
         filepath_new, filename_new, fileext_new = gen_filename(filepath)
 
@@ -211,8 +212,8 @@ def rename_iPhone_photos():
                 print(f"{o} -> {n}")
                 rename_file_after_checks(o, n)
 
-    l = glob.glob("IMG_*.HEIC")
-    for filepath in sorted(l):
+    list_of_files = glob.glob("IMG_*.HEIC")
+    for filepath in sorted(list_of_files):
         filepath_new, filename_new, fileext_new = gen_filename(filepath)
 
         print(f"{filepath} -> {filepath_new}")

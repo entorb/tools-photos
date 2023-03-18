@@ -17,7 +17,8 @@ generates a 000000_tags_db.txt list containing per tags a list of dirs where it 
 #
 # TODO:
 # refactor the __main__ function into smaller pieces to improve readability
-# use pip install exifread instead, as this might be able to read GPS from movies as well
+# use pip install exifread instead, as this might be able to read GPS from movies
+# as well
 # extract GPS from movies
 #
 # IDEA:
@@ -77,8 +78,8 @@ l_tags_to_skip = [
 #     return labeled
 
 
-# iptc_keys = ['object name', 'edit status', 'editorial update', 'urgency', 'subject reference', 'category', 'supplemental category', 'fixture identifier', 'keywords', 'content location code', 'content location name', 'release date', 'release time', 'expiration date', 'expiration time', 'special instructions', 'action advised', 'reference service', 'reference date', 'reference number', 'date created', 'time created', 'digital creation date', 'digital creation time', 'originating program', 'program version', 'object cycle', 'by-line', 'by-line title',
-#              'city', 'sub-location', 'province/state', 'country/primary location code', 'country/primary location name', 'original transmission reference', 'headline', 'credit', 'source', 'copyright notice', 'contact', 'caption/abstract', 'local caption', 'writer/editor', 'image type', 'image orientation', 'language identifier', 'custom1', 'custom2', 'custom3', 'custom4', 'custom5', 'custom6', 'custom7', 'custom8', 'custom9', 'custom10', 'custom11', 'custom12', 'custom13', 'custom14', 'custom15', 'custom16', 'custom17', 'custom18', 'custom19', 'custom20']
+# iptc_keys = ['object name', 'edit status', 'editorial update', 'urgency', 'subject reference', 'category', 'supplemental category', 'fixture identifier', 'keywords', 'content location code', 'content location name', 'release date', 'release time', 'expiration date', 'expiration time', 'special instructions', 'action advised', 'reference service', 'reference date', 'reference number', 'date created', 'time created', 'digital creation date', 'digital creation time', 'originating program', 'program version', 'object cycle', 'by-line', 'by-line title', # noqa: E501
+#              'city', 'sub-location', 'province/state', 'country/primary location code', 'country/primary location name', 'original transmission reference', 'headline', 'credit', 'source', 'copyright notice', 'contact', 'caption/abstract', 'local caption', 'writer/editor', 'image type', 'image orientation', 'language identifier', 'custom1', 'custom2', 'custom3', 'custom4', 'custom5', 'custom6', 'custom7', 'custom8', 'custom9', 'custom10', 'custom11', 'custom12', 'custom13', 'custom14', 'custom15', 'custom16', 'custom17', 'custom18', 'custom19', 'custom20'] # noqa: E501
 
 
 def extractIptcKeywordTags(thisFile: str) -> list:
@@ -212,7 +213,8 @@ def get_pic_datetime_as_str(path_to_file: str, exif_tags: dict) -> str:
         s = exif_tags["DateTimeOriginal"]
         picDate = dateStrLocalToUtc(s)
     else:
-        # print("No date in exif found, using file creation or modification date instead, whatever is older")
+        # print("No date in exif found, using file creation or modification date
+        # instead, whatever is older")
         ts_file_created = creation_date(fileIn)
         # dt_file_created = datetime.datetime.fromtimestamp(ts_file_created)
         ts_file_modified = os.path.getmtime(fileIn)
@@ -232,7 +234,8 @@ def dateStrLocalToUtc(datestr: str) -> str:
     Date conversion: local to UTC.
 
     e.g. '2019:01:03 09:17:15' -> '2019-01-03T08:17:15+00:00'
-    The format is "YYYY:MM:DD HH:MM:SS" with time shown in 24-hour format, and the date and time separated by one blank character (hex 20).
+    The format is "YYYY:MM:DD HH:MM:SS" with time shown in 24-hour format,
+    and the date and time separated by one blank character (hex 20).
     https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/exif/datetimeoriginal.html
     """
     assert len(datestr) >= 19, f"E: {datestr}"
@@ -336,7 +339,10 @@ if __name__ == "__main__":
 
                 if len(picLatLonAlt) == 3:
                     # print(picDate, picLatLonAlt[0], picLatLonAlt[1], picLatLonAlt[2])
-                    s = f'<trkpt lat="{picLatLonAlt[0]}" lon="{picLatLonAlt[1]}"><time>{picDate}</time><name>{fileJpeg}</name>'
+                    s = (
+                        f'<trkpt lat="{picLatLonAlt[0]}" lon="{picLatLonAlt[1]}"><time>'
+                        + f"{picDate}</time><name>{fileJpeg}</name>"
+                    )
                     if picLatLonAlt[2] != 0:
                         s += f"<ele>{picLatLonAlt[2]}</ele>"
                     s += "</trkpt>"
@@ -369,7 +375,7 @@ if __name__ == "__main__":
                 fileOut1 = dirpath + "/" + "000000_gps.gpx"
                 with open(fileOut1, mode="w", encoding="utf-8", newline="\n") as fh1:
                     date = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-                    gpxHead = f'<?xml version="1.0" encoding="UTF-8" ?>\n<gpx version="1.1" creator="Torben Menke, https://entorb.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n<metadata><time>{date}</time></metadata>\n<trk><trkseg>'
+                    gpxHead = f'<?xml version="1.0" encoding="UTF-8" ?>\n<gpx version="1.1" creator="Torben Menke, https://entorb.net" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">\n<metadata><time>{date}</time></metadata>\n<trk><trkseg>'  # noqa: E501
                     fh1.write(gpxHead + "\n")
                     fh1.write("\n".join(contGpxInThisDir))
                     fh1.write("\n</trkseg></trk></gpx>\n")
@@ -379,7 +385,7 @@ if __name__ == "__main__":
         # write tag DB
         with open(file_tag_db, mode="w", encoding="utf-8", newline="\n") as fh:
             for tag in sorted(d_tag_db.keys()):
-                l = d_tag_db[tag]
+                my_list = d_tag_db[tag]
                 fh.write(tag + "\n")
-                fh.write("\n".join(sorted(l)))
+                fh.write("\n".join(sorted(my_list)))
                 fh.write("\n\n")
