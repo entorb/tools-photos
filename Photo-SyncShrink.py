@@ -6,6 +6,10 @@ resizing file in target dir to 1920px.
 location online: https://github.com/entorb/Tools-Photos
 location local: f:/FotoalbumSSD/Skripte
 """
+
+# TODO:
+# ruff: noqa
+
 # config is in PhotoSyncShrink.ini
 # requirements:
 # ImageMagick https://imagemagick.org
@@ -37,11 +41,11 @@ from configparser import ConfigParser
 # PIL Image.save() drops the IPTC data like tags, keywords, copywrite, ...
 # so using ImageMagick instead
 # install: download from https://imagemagick.org/
-# V1: use commandline imagemagick's magick tool
+# V1: use command-line imagemagick's magick tool
 # maybe later: V2: use python module https://docs.wand-py.org install see https://docs.wand-py.org/en/0.6.5/guide/install.html#install-imagemagick-on-windows
 
 
-# options / settions / configuration parsed from .ini file
+# options / settings / configuration parsed from .ini file
 o: dict[str, str | bool | int] = {}
 l_blacklist: list[str] = []
 l_ext_img_files: list[str] = []
@@ -243,11 +247,11 @@ def clean_up_target() -> None:
         for childitem in filenames:
             targetPath = os.path.join(dirpath, childitem).replace("\\", "/")
             targetPathRel = targetPath[len(o["dirTarget"]) :]
-            fileext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
+            file_ext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
 
             # 2.1 delete blacklisted files
             # 2.2 delete files based on extension
-            if is_in_blacklist(targetPath) or fileext not in l_ext_valid:
+            if is_in_blacklist(targetPath) or file_ext not in l_ext_valid:
                 print(f"del {targetPathRel}")
                 os.remove(targetPath)
                 continue
@@ -289,10 +293,10 @@ def sync_source_to_target() -> None:
             if os.path.isfile(targetPath):
                 continue  # do nothing if file already exists
 
-            fileext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
+            file_ext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
 
-            if fileext in l_ext_valid:
-                if fileext in ("jpg", "jpeg"):  # resize jpeg images
+            if file_ext in l_ext_valid:
+                if file_ext in ("jpg", "jpeg"):  # resize jpeg images
                     print(f"resizing {sourcePathRel}")
                     resize_image_ImageMagick(sourcePath)
                 else:  # copy other files
@@ -321,7 +325,7 @@ def sync_source_to_target() -> None:
 
 def resize_image_ImageMagick(fileIn: str) -> None:
     """
-    Resize jpeg images usuing imagemagick command line tool.
+    Resize jpeg images using imagemagick command line tool.
 
     command:
     magick convert e:/tmp/source/Dir1/180127_121042_tm.jpg -auto-orient -size 1920x1920
