@@ -7,6 +7,10 @@ renames in place, not moved into subfolder
 location online: https://github.com/entorb/Tools-Photos
 location local:  f:/FotoalbumSSD/Skripte
 """
+
+# TODO:
+# ruff: noqa
+
 import glob
 import os
 import platform
@@ -55,8 +59,8 @@ def get_date(path_to_file) -> datetime:
     """
     dt = datetime.fromtimestamp(0)  # 1.1.1970
     # for pictures try to read exif data
-    fileext = os.path.splitext(path_to_file)[1]
-    if fileext.lower() in (".jpg", ".jpeg"):
+    file_ext = os.path.splitext(path_to_file)[1]
+    if file_ext.lower() in (".jpg", ".jpeg"):
         image = Image.open(path_to_file)
         exif = image.getexif()
         exif_creation_time = exif.get(36867)
@@ -97,21 +101,21 @@ def gen_filename(filepath: str, suffix: str = "") -> tuple:
     Return tuple of new filename , new extension.
     """
     dt = get_date(filepath)
-    (filename, fileext) = os.path.splitext(filepath)
+    (file_name, file_ext) = os.path.splitext(filepath)
     datestr = gen_datestr(dt)
     count_identical_files = 0
 
     filename_new = f"{datestr}{suffix}"
-    fileext_new = fileext.lower()
-    if fileext_new == ".jpeg":
-        fileext_new = ".jpg"
+    file_ext_new = file_ext.lower()
+    if file_ext_new == ".jpeg":
+        file_ext_new = ".jpg"
 
     # check if outfile already exists, if so append number
-    while os.path.isfile(f"{filename_new}{fileext_new}"):
+    while os.path.isfile(f"{filename_new}{file_ext_new}"):
         count_identical_files += 1
         filename_new = f"{datestr}{suffix}_%02d" % count_identical_files
 
-    return filename_new, fileext_new
+    return filename_new, file_ext_new
 
 
 def rename_file(filepath_old: str, filepath_new: str):
@@ -129,14 +133,14 @@ def rename_file(filepath_old: str, filepath_new: str):
 
 def rename_files_matching(search_str: str, suffix: str = ""):
     """
-    Use glob in currend dir applying search_str.
+    Use glob in current dir applying search_str.
     """
     for filepath in sorted(glob.glob(search_str)):
         filename = os.path.splitext(filepath)[0]
         if filename in l_ignore:
             continue
-        filename_new, fileext_new = gen_filename(filepath, suffix)
-        filepath_new = f"{filename_new}{fileext_new}"
+        filename_new, file_ext_new = gen_filename(filepath, suffix)
+        filepath_new = f"{filename_new}{file_ext_new}"
 
         print(f"{filepath} -> {filepath_new}")
         rename_file(filepath, filepath_new)
