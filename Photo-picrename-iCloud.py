@@ -10,6 +10,8 @@ but reduced size?
 location online: https://github.com/entorb/Tools-Photos
 """
 # TODO:
+# ruff: noqa
+
 # extract date and time from movies via pip install exifread
 import datetime as dt
 import glob
@@ -77,8 +79,8 @@ def get_date(path_to_file) -> dt.datetime:
     """
     d = dt.datetime.fromtimestamp(0)  # 1.1.1970
     # for pictures try to read exif data
-    fileext = os.path.splitext(path_to_file)[1]
-    # if fileext.lower() in (".jpg", ".jpeg"):
+    file_ext = os.path.splitext(path_to_file)[1]
+    # if file_ext.lower() in (".jpg", ".jpeg"):
     # image = Image.open(path_to_file)
     # exif = image.getexif()
     # exif_creation_time = exif.get(36867)
@@ -87,7 +89,7 @@ def get_date(path_to_file) -> dt.datetime:
     #     dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
     #     d = dt_exif_creation
 
-    if fileext.lower() in (
+    if file_ext.lower() in (
         ".jpg",
         ".jpeg",
         ".heic",
@@ -144,12 +146,12 @@ def gen_filename(
     """
     Generate filename.
 
-    suffix: at string starting with "_" to insert in filenname after date
+    suffix: at string starting with "_" to insert in filename after date
     remove: a string to remove from filename
     returns tuple of new filepath, new filename, new extension
     if output file already exists, append sequence
     """
-    (filename, fileext) = os.path.splitext(filepath)
+    (filename, file_ext) = os.path.splitext(filepath)
     d = get_date(filepath)
     datestr = gen_datestr(d)
     count_identical_files = 0
@@ -159,11 +161,11 @@ def gen_filename(
         filename_modified = filename_modified.replace(remove, "")
     filename_new = f"{datestr}{suffix}_{filename_modified}"
 
-    fileext_new = fileext.lower()
-    if fileext_new == ".jpeg":
-        fileext_new = ".jpg"
+    file_ext_new = file_ext.lower()
+    if file_ext_new == ".jpeg":
+        file_ext_new = ".jpg"
 
-    filepath_new = f"{outdir}/{out_sub_dir}/{filename_new}{fileext_new}"
+    filepath_new = f"{outdir}/{out_sub_dir}/{filename_new}{file_ext_new}"
 
     # check if outfile already exists, if so append number
     while os.path.isfile(f"{filepath_new}"):
@@ -171,9 +173,9 @@ def gen_filename(
         filename_new = (
             f"{datestr}{suffix}_{filename_modified}_%02d" % count_identical_files
         )
-        filepath_new = f"{outdir}/{out_sub_dir}/{filename_new}{fileext_new}"
+        filepath_new = f"{outdir}/{out_sub_dir}/{filename_new}{file_ext_new}"
 
-    return filepath_new, filename_new, fileext_new
+    return filepath_new, filename_new, file_ext_new
 
 
 def rename_file_after_checks(filepath_old: str, filepath_new: str):
@@ -198,7 +200,7 @@ def rename_iPhone_photos():
     list_of_files.extend(glob.glob("IMG_*.JPEG"))
     for filepath in sorted(list_of_files):
         filename = os.path.splitext(filepath)[0]
-        filepath_new, filename_new, fileext_new = gen_filename(filepath)
+        filepath_new, filename_new, file_ext_new = gen_filename(filepath)
 
         print(f"{filepath} -> {filepath_new}")
         rename_file_after_checks(filepath, filepath_new)
@@ -214,7 +216,7 @@ def rename_iPhone_photos():
 
     list_of_files = glob.glob("IMG_*.HEIC")
     for filepath in sorted(list_of_files):
-        filepath_new, filename_new, fileext_new = gen_filename(filepath)
+        filepath_new, filename_new, file_ext_new = gen_filename(filepath)
 
         print(f"{filepath} -> {filepath_new}")
         rename_file_after_checks(filepath, filepath_new)
@@ -227,14 +229,14 @@ def rename_files_matching(
     remove: str = "",
 ):
     """
-    Use glob in currend dir applying search_str.
+    Use glob in current dir applying search_str.
     """
     for filepath in sorted(glob.glob(search_str)):
         if not os.path.isdir(f"{outdir}/{out_sub_dir}"):
             os.mkdir(f"{outdir}/{out_sub_dir}")
 
         # filename = os.path.splitext(filepath)[0]
-        filepath_new, filename_new, fileext_new = gen_filename(
+        filepath_new, filename_new, file_ext_new = gen_filename(
             filepath=filepath,
             suffix=suffix,
             out_sub_dir=out_sub_dir,
@@ -268,7 +270,7 @@ def rename_Whatsapp_files():
         if match:
             if not os.path.isdir(f"{outdir}/{out_sub_dir}"):
                 os.mkdir(f"{outdir}/{out_sub_dir}")
-            filepath_new, filename_new, fileext_new = gen_filename(
+            filepath_new, filename_new, file_ext_new = gen_filename(
                 filepath=filepath,
                 suffix="_WA",
                 out_sub_dir=out_sub_dir,

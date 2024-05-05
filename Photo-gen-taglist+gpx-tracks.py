@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Jpeg -> GPX Traglist and + IPTC Taglist files.
+Jpeg -> GPX Tracklist and + IPTC Taglist files.
 
 location online: https://github.com/entorb/Tools-Photos
 location local:  f:/FotoalbumSSD/Skripte
@@ -12,10 +12,13 @@ generates a 000000_gps.gpx track of all photos containing coordinates
 generates a 000000_tags.txt list of all tags/keywords assigned to photos
 generates a 000000_tags_db.txt list containing per tags a list of dirs where it was used
 """
+
 # Bugs
 #
 #
 # TODO:
+# ruff: noqa
+
 # refactor the __main__ function into smaller pieces to improve readability
 # use pip install exifread instead, as this might be able to read GPS from movies
 # as well
@@ -33,7 +36,7 @@ import re
 
 import exifread  # pip3 install exifread
 import pytz
-from iptcinfo3 import IPTCInfo  # this works in pyhton 3!
+from iptcinfo3 import IPTCInfo  # this works in python 3!
 
 # from PIL import Image
 # from PIL.ExifTags import TAGS, GPSTAGS
