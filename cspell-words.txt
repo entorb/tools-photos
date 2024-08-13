@@ -11,6 +11,8 @@ copywrite
 CPAN
 dateformat
 datestr
+DCIM
+Digikam
 dtrash
 EXIF
 exifread
@@ -63,3 +65,4 @@ trkpt
 trkseg
 Unfug
 Urlaube
+YYMM
