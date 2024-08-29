@@ -33,6 +33,7 @@ IPTC
 iptcinfo
 isort
 Jahre
+lastfile
 Leute
 magick
 MCPAN
@@ -43,10 +44,12 @@ noqa
 oldfile
 onefile
 opendir
+osxphotos
 outdir
 picrename
 piexif
 pycache
+pyenv
 pyinstaller
 pytz
 pyupgrade
