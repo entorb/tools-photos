@@ -33,6 +33,7 @@ IPTC
 iptcinfo
 isort
 Jahre
+lastfile
 Leute
 magick
 MCPAN
