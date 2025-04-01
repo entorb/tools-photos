@@ -15,4 +15,4 @@ ignorePaths:
   - "build"
   - "node_modules"
   - "requirements.txt"
-  - "Photo-SyncShrink-old.pl"
+  - "photo_SyncShrink-old.pl"
