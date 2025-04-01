@@ -7,9 +7,6 @@ location online: https://github.com/entorb/Tools-Photos
 location local: f:/FotoalbumSSD/Skripte
 """
 
-# TODO:
-# ruff: noqa
-
 # config is in PhotoSyncShrink.ini
 # requirements:
 # ImageMagick https://imagemagick.org
@@ -25,15 +22,15 @@ location local: f:/FotoalbumSSD/Skripte
 # target: remove blacklisted files / dirs
 # target: remove video and other files if not included in selection (.ini file)
 # TODO
-# use Pathlib
 # blacklist: handle "*"
 
 import multiprocessing  # for multiprocessing.cpu_count()
 import os
 import shutil
-import subprocess  # noqa: S404
+import subprocess
 import time
 from configparser import ConfigParser
+from pathlib import Path
 
 # from PIL import Image # pip3 install Pillow
 # import piexif # pip3 install piexif
@@ -54,7 +51,7 @@ l_ext_other_files: list[str] = []
 l_magick_param: list[str] = []
 l_subprocesses: list[subprocess.Popen[str]] = []  # list of subprocesses
 
-# TODO
+# TODO:
 # shutil.rmtree("e:/tmp/target-PY/")
 # os.makedirs("e:/tmp/target-PY/", exist_ok=True) # = mkdir -p
 # if os.path.isfile("e:/tmp/target-PY/Dir1/180000 Rennen/180127_121042_tm.JPEG"):
@@ -64,21 +61,22 @@ l_subprocesses: list[subprocess.Popen[str]] = []  # list of subprocesses
 
 
 def read_config() -> None:
+    """Read config file."""
     config = ConfigParser(interpolation=None)
     # interpolation=None -> treats % in values as char % instead of interpreting it
-    config.read("Photo-SyncShrink.ini", encoding="utf-8")
+    config.read("photo_SyncShrink.ini", encoding="utf-8")
 
     o["dirSourceBase"] = config.get("general", "dirSourceBase").replace("\\", "/")
     o["dirTargetBase"] = config.get("general", "dirTargetBase").replace("\\", "/")
     assert isinstance(o["dirSourceBase"], str)
     assert isinstance(o["dirTargetBase"], str)
 
-    assert os.path.isdir(
-        o["dirSourceBase"],
-    ), f"source dir not found: {o['dirSourceBase']}"
-    assert os.path.isdir(
-        o["dirTargetBase"],
-    ), f"target dir not found: {o['dirTargetBase']}"
+    assert Path(o["dirSourceBase"]).is_dir(), (
+        f"source dir not found: {o['dirSourceBase']}"
+    )
+    assert Path(o["dirTargetBase"]).is_dir(), (
+        f"target dir not found: {o['dirTargetBase']}"
+    )
 
     global l_whitelist
     l_whitelist = sorted(config.get("general", "whitelist").lower().split())
@@ -135,10 +133,10 @@ def read_config() -> None:
     print("blacklist")
     for value in l_blacklist:
         print(f" {value}")
-    print("")
+    print()
 
 
-def is_in_blacklist(path: str) -> bool:
+def is_in_blacklist(path: str) -> bool:  # noqa: D103
     ret = False
     for item in l_blacklist:
         if item in path.lower():
@@ -207,7 +205,7 @@ def process_print_output(process: subprocess.Popen[str]) -> None:
 # Main Functions
 
 
-def clean_up_target_base() -> None:
+def clean_up_target_base() -> None:  # noqa: D103
     print("=== delete from dirTargetBase ===")
     # I only delete dirs not in whitelist, ignoring any file in target dir
     for d in os.scandir(o["dirTargetBase"]):
@@ -216,54 +214,53 @@ def clean_up_target_base() -> None:
             shutil.rmtree(d.path)
 
 
-def clean_up_target() -> None:
+def clean_up_target() -> None:  # noqa: D103
     print("=== delete from dirTarget ===")
     assert isinstance(o["dirSource"], str)
     assert isinstance(o["dirTarget"], str)
     for dirpath, dirnames, filenames in os.walk(o["dirTarget"]):
-        dirpath = dirpath.replace("\\", "/")
+        dirpath = dirpath.replace("\\", "/")  # noqa: PLW2901
 
         # 1. check dirs
         for childitem in dirnames:
-            targetPath = os.path.join(dirpath, childitem).replace("\\", "/")
-            targetPathRel = targetPath[len(o["dirTarget"]) :]
+            target_path = os.path.join(dirpath, childitem).replace("\\", "/")
+            target_path_rel = target_path[len(o["dirTarget"]) :]
             # 1.1 delete blacklisted dirs
-            if is_in_blacklist(targetPath):
-                print(f"del {targetPath}")
-                shutil.rmtree(targetPath)
+            if is_in_blacklist(target_path):
+                print(f"del {target_path}")
+                shutil.rmtree(target_path)
                 continue
 
             # 1.2 delete dirs not in source
             # replace from the left only
-            sourcePath = o["dirSource"] + targetPath[len(o["dirTarget"]) :]
-            # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
+            source_path = o["dirSource"] + target_path[len(o["dirTarget"]) :]
             # print(f"{targetPath} <-- {sourcePath}")
-            if not (os.path.isdir(sourcePath)):
-                print(f"del {targetPathRel}")
-                shutil.rmtree(targetPath)
+            if not (os.path.isdir(source_path)):
+                print(f"del {target_path_rel}")
+                shutil.rmtree(target_path)
                 continue
 
         # 2. check files
         for childitem in filenames:
-            targetPath = os.path.join(dirpath, childitem).replace("\\", "/")
-            targetPathRel = targetPath[len(o["dirTarget"]) :]
+            target_path = os.path.join(dirpath, childitem).replace("\\", "/")
+            target_path_rel = target_path[len(o["dirTarget"]) :]
             file_ext = os.path.splitext(childitem)[1][1:].lower()  # without leading '.'
 
             # 2.1 delete blacklisted files
             # 2.2 delete files based on extension
-            if is_in_blacklist(targetPath) or file_ext not in l_ext_valid:
-                print(f"del {targetPathRel}")
-                os.remove(targetPath)
+            if is_in_blacklist(target_path) or file_ext not in l_ext_valid:
+                print(f"del {target_path_rel}")
+                os.remove(target_path)
                 continue
 
             # 2.3 delete files not in source
             # replace from the left only
-            sourcePath = o["dirSource"] + targetPath[len(o["dirTarget"]) :]
+            source_path = o["dirSource"] + target_path[len(o["dirTarget"]) :]
             # sourcePath = targetPath.replace(o['dirTarget'], o['dirSource'])
             # print(f"{targetPath} <-- {sourcePath}")
-            if not (os.path.isfile(sourcePath)):
-                print(f"del {targetPathRel}")
-                os.remove(targetPath)
+            if not (os.path.isfile(source_path)):
+                print(f"del {target_path_rel}")
+                os.remove(target_path)
                 continue
 
 
@@ -298,7 +295,7 @@ def sync_source_to_target() -> None:
             if file_ext in l_ext_valid:
                 if file_ext in ("jpg", "jpeg"):  # resize jpeg images
                     print(f"resizing {sourcePathRel}")
-                    resize_image_ImageMagick(sourcePath)
+                    resize_image_imagemagick(sourcePath)
                 else:  # copy other files
                     print(f"cp {sourcePathRel}")
                     shutil.copyfile(sourcePath, targetPath)
@@ -323,7 +320,7 @@ def sync_source_to_target() -> None:
 #       quality=o['jpeg_quality'], exif=exif_bytes)
 
 
-def resize_image_ImageMagick(fileIn: str) -> None:
+def resize_image_imagemagick(file_in: str) -> None:
     """
     Resize jpeg images using imagemagick command line tool.
 
@@ -333,13 +330,13 @@ def resize_image_ImageMagick(fileIn: str) -> None:
     """
     assert isinstance(o["dirSource"], str)
     assert isinstance(o["dirTarget"], str)
-    fileOut = o["dirTarget"] + fileIn[len(o["dirSource"]) :]
+    file_out = o["dirTarget"] + file_in[len(o["dirSource"]) :]
     param: list[str] = []
     if os.name == "nt":
         param.append("magick")  # for windows we need to prepend this
-    param.extend(("convert", fileIn))
+    param.extend(("convert", file_in))
     param.extend(l_magick_param)
-    param.append(fileOut)
+    param.append(file_out)
     # V1 single thread
     # process = subprocess.run(param, capture_output=True, text=True)
     # print(process.stdout)

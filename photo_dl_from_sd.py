@@ -7,18 +7,18 @@ from shutil import copyfile
 from zoneinfo import ZoneInfo
 
 TZ_DE = ZoneInfo("Europe/Berlin")
+PREFIX = "TME_"
 
+PATH_LAST_FILE = Path(__file__).parent / "photo_dl_from_sd_lastfile.txt"
 DIR_IN = Path("/Volumes/TM-NIKON/DCIM/")
 DIR_OUT = Path("/Users/torben/Pictures/Digikam/00_fotos_von_kam_holen/")
+
 if not DIR_IN.exists():
     print(f"Source dir {DIR_IN} not found, exiting...")
     sys.exit()
 DIR_OUT.mkdir(parents=True, exist_ok=True)
-PATH_LAST_FILE = Path(__file__).parent / "photo_dl_from_sd_lastfile.txt"
 
 last_file = PATH_LAST_FILE.read_text().strip()
-
-PREFIX = "TME_"
 
 # read list of all files on SD card
 all_files = sorted(DIR_IN.glob(f"*/{PREFIX}*"))
@@ -48,7 +48,7 @@ for p in all_files:
     )
     outdir_ym.mkdir(exist_ok=True)
     outfile = (
-        outdir_ym / f"{str_date}_{p.stem.replace(PREFIX, "Nikon_")}{p.suffix.lower()}"
+        outdir_ym / f"{str_date}_{p.stem.replace(PREFIX, 'Nikon_')}{p.suffix.lower()}"
     )
     # DCIM/115D7000/TME_5932.JPG
     # ->

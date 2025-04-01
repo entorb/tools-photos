@@ -9,8 +9,6 @@ but reduced size?
 
 location online: https://github.com/entorb/Tools-Photos
 """
-# TODO:
-# ruff: noqa
 
 # extract date and time from movies via pip install exifread
 import datetime as dt
@@ -58,14 +56,13 @@ def creation_date(path_to_file):
     """
     if platform.system() == "Windows":
         return os.path.getctime(path_to_file)
-    else:
-        stat = os.stat(path_to_file)
-        try:
-            return stat.st_birthtime
-        except AttributeError:
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            return stat.st_mtime
+    stat = os.stat(path_to_file)
+    try:
+        return stat.st_birthtime
+    except AttributeError:
+        # We're probably on Linux. No easy way to get creation dates here,
+        # so we'll settle for when its content was last modified.
+        return stat.st_mtime
 
 
 def get_date(path_to_file) -> dt.datetime:
@@ -98,7 +95,7 @@ def get_date(path_to_file) -> dt.datetime:
             tags = exifread.process_file(fh)
         # for key, value in tags.items():
         #     print(f"{key}\t{value}")
-        if "EXIF DateTimeOriginal" in tags and str(tags["EXIF DateTimeOriginal"]) != 0:
+        if "EXIF DateTimeOriginal" in tags and str(tags["EXIF DateTimeOriginal"]) != "":
             exif_creation_time = str(tags["EXIF DateTimeOriginal"])
             exif_creation_time = exif_creation_time.replace(":", "-", 2)
             dt_exif_creation = dt.datetime.fromisoformat(exif_creation_time)
