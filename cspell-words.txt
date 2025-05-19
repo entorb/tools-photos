@@ -58,6 +58,8 @@ Rennen
 scandir
 Schluempfe
 Skripte
+SonarCloud
+SonarQube
 substr
 Taglist
 threema
