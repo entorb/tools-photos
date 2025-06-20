@@ -11,7 +11,7 @@ PREFIX = "TME_"
 
 PATH_LAST_FILE = Path(__file__).parent / "photo_dl_from_sd_lastfile.txt"
 DIR_IN = Path("/Volumes/TM-NIKON/DCIM/")
-DIR_OUT = Path("/Users/torben/Pictures/Digikam/00_fotos_von_kam_holen/")
+DIR_OUT = Path("/tmp/NewFromCam/")  # noqa: S108
 
 if not DIR_IN.exists():
     print(f"Source dir {DIR_IN} not found, exiting...")
@@ -36,28 +36,29 @@ for i, p in enumerate(all_files):
 if last_file_in_all_files:
     all_files = all_files[pos_last_file_in_all_files:]
 
+if len(all_files) > 0:
+    # copy new files
+    for p in all_files:
+        print(p.name)
+        file_ts = p.stat().st_mtime  # read modification timestamp
+        file_dt = dt.datetime.fromtimestamp(file_ts, tz=TZ_DE)
+        str_date = file_dt.strftime("%y%m%d_%H%M%S")
+        outdir_ym = outfile = (
+            DIR_OUT / file_dt.strftime("%y%m")  # sub dir YYMM
+        )
+        outdir_ym.mkdir(exist_ok=True)
+        outfile = (
+            outdir_ym
+            / f"{str_date}_{p.stem.replace(PREFIX, 'Nikon_')}{p.suffix.lower()}"
+        )
+        # DCIM/115D7000/TME_5932.JPG
+        # ->
+        # NewFromCam/2408/240812_215120_Nikon_5932.jpg
 
-# copy new files
-for p in all_files:
-    print(p.name)
-    file_ts = p.stat().st_mtime  # read modification timestamp
-    file_dt = dt.datetime.fromtimestamp(file_ts, tz=TZ_DE)
-    str_date = file_dt.strftime("%y%m%d_%H%M%S")
-    outdir_ym = outfile = (
-        DIR_OUT / file_dt.strftime("%y%m")  # sub dir YYMM
-    )
-    outdir_ym.mkdir(exist_ok=True)
-    outfile = (
-        outdir_ym / f"{str_date}_{p.stem.replace(PREFIX, 'Nikon_')}{p.suffix.lower()}"
-    )
-    # DCIM/115D7000/TME_5932.JPG
-    # ->
-    # NewFromCam/2408/240812_215120_Nikon_5932.jpg
+        # print(outfile)
+        # if 1 == 2:
+        copyfile(p, outfile)
 
-    # print(outfile)
-    # if 1 == 2:
-    copyfile(p, outfile)
-
-print(f"Last file: {p.name}")
-
-PATH_LAST_FILE.write_text(p.name)
+    print(f"Last file: {p.name}")  # type: ignore
+    print(f"-> {DIR_OUT}")
+    PATH_LAST_FILE.write_text(p.name)  # type: ignore
