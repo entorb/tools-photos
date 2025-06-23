@@ -341,7 +341,7 @@ if __name__ == "__main__":
                     # print(picDate, picLatLonAlt[0], picLatLonAlt[1], picLatLonAlt[2])
                     s = (
                         f'<trkpt lat="{picLatLonAlt[0]}" lon="{picLatLonAlt[1]}"><time>'
-                        + f"{picDate}</time><name>{fileJpeg}</name>"
+                        f"{picDate}</time><name>{fileJpeg}</name>"
                     )
                     if picLatLonAlt[2] != 0:
                         s += f"<ele>{picLatLonAlt[2]}</ele>"
@@ -355,8 +355,10 @@ if __name__ == "__main__":
             if len(contTagsInThisDir) > 1:
                 fileOut2 = dirpath + "/" + "000000_tags.txt"
                 with open(fileOut2, mode="w", encoding="utf-8", newline="\n") as fh2:
-                    for k in sorted(contTagsInThisDir.keys()):
-                        fh2.write("" + k + "\t" + str(contTagsInThisDir[k]) + "\n")
+                    fh2.writelines(
+                        "" + k + "\t" + str(contTagsInThisDir[k]) + "\n"
+                        for k in sorted(contTagsInThisDir.keys())
+                    )
 
                 fh_startDir_tags.write(
                     dirpath_rel
