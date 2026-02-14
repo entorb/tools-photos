@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # install:
-# pyenv global 3.13
+# pyenv global 3.14
 # pip install --upgrade pip
 # pip install osxphotos
 
