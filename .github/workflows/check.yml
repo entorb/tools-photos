@@ -5,7 +5,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    branches: ["main"]
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-          fetch-depth: 1 # 0 if you want to push to repo
+          fetch-depth: 1 # latest only
 
       - name: Python set up
         uses: actions/setup-python@v6
@@ -31,8 +31,7 @@ jobs:
           python-version-file: ".python-version"
           cache: "pip"
 
-      - name: Run pre-commit hooks
-        uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@v3.0.1
 
       # - name: Install dependencies
       #   run: |

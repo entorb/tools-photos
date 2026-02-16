@@ -11,8 +11,5 @@ dictionaries:
   - cspell-words
 ignorePaths:
   - ".*"
-  - "dist"
-  - "build"
-  - "node_modules"
   - "requirements.txt"
   - "photo_SyncShrink-old.pl"
