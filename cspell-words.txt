@@ -48,6 +48,7 @@ osxphotos
 outdir
 picrename
 piexif
+prek
 pycache
 pyenv
 pyinstaller
