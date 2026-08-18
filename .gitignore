@@ -1,0 +1,11 @@
+.DS_Store
+.vscode/
+/.pytest_cache/
+/.ruff_cache/
+/.rumdl_cache/
+/.venv/
+__pycache__/
+cspell-words-missing.txt
+Photo-SyncShrink.exe
+photo_dl_from_sd_lastfile.txt
+playground.py
