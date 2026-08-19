@@ -59,6 +59,7 @@ Rennen
 rumdl
 scandir
 Schluempfe
+shfmt
 Skripte
 SonarCloud
 SonarQube
